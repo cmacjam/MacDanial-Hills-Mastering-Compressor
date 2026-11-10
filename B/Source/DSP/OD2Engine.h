@@ -17,6 +17,12 @@ inline constexpr float kRecoverS[kNumSteps] = { 0.1f, 0.25f, 0.5f, 0.8f, 1.2f, 0
 inline constexpr int   kFloodIndex        = 5;
 inline constexpr int   kDualIndex         = 5;
 
+// Class-A edition: the output stage runs ~1-3 dB hotter than the standard unit at identical
+// settings. Modelled as a fixed +1.5 dB in the wet path (not applied when hardwire-bypassed).
+inline constexpr float kClassAOutputGainDb = 1.5f;
+// Class-A sidechain responds faster than the labelled attack of the standard unit.
+inline constexpr float kClassAAttackScale  = 0.8f;
+
 // Calibration: threshold step 1 = 0 dBFS (minimum compression), step 24 = -28.75 dBFS.
 inline float thresholdDb (int step) noexcept { return -1.25f * (float) (std::clamp (step, 1, 24) - 1); }
 // Gain: 24-position switch, unity at position 7 (as on the hardware), fine 0.5 dB steps

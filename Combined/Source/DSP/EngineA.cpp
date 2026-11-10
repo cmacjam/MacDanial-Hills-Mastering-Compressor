@@ -286,8 +286,9 @@ void Engine::processOversampled (juce::dsp::AudioBlock<float>& os) noexcept
             auto& st = state[(size_t) ch];
             dry[ch] = ptr[ch][i];
 
-            float v = fastTanh (dry[ch] * 0.15f) / 0.15f;  // class-A line amp, ~+16 dB headroom
-            v += 0.003f * v * v;                            // class-A 2nd harmonic
+            // Standard op-amp line amp: less headroom (~+14 dB) and a mix of 2nd + 3rd harmonics
+            float v = fastTanh (dry[ch] * 0.20f) / 0.20f;
+            v += 0.004f * v * v;
             x[ch] = v;
 
             const float hp = st.scOpto.process (v);
@@ -363,6 +364,8 @@ void Engine::processOversampled (juce::dsp::AudioBlock<float>& os) noexcept
             const float amt = st.discAmt.getNextValue();
             const float mk  = st.discGain.getNextValue();
             x[ch] *= 1.0f + amt * (dbToGain (-gr) * mk - 1.0f);
+            // Op-amp VCA: odd-order density that grows with gain reduction (the "thicker glue")
+            x[ch] -= amt * 0.03f * std::min (gr, 12.0f) / 12.0f * x[ch] * x[ch] * x[ch];
             blockDiscGr[ch] = std::max (blockDiscGr[ch], gr * amt);
         }
 

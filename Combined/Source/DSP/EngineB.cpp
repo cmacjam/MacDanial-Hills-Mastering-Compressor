@@ -80,7 +80,7 @@ void Transformer::configure (int type, double fs) noexcept
         case inputLundahl:   // input iron: weight under 80 Hz, open top, very low distortion
             lo.setLowShelf  (fs, 70.0,    0.70, +0.5);
             hi.setHighShelf (fs, 20000.0, 0.70, +0.3);
-            drive = 0.10f; fluxDrive = 1.2f; fluxAmt = 0.08f; even = 0.004f; fluxHz = 90.0;
+            drive = 0.07f; fluxDrive = 1.2f; fluxAmt = 0.05f; even = 0.002f; fluxHz = 90.0;   // Lundahl: very clean, wide
             break;
 
         default: // steel
@@ -199,7 +199,7 @@ void Engine::updateTargets (const ChannelSettings* cs, bool bypass, int nCh) noe
         st.discKnee  = (r == kFloodIndex) ? 2.0f : 6.0f;   // Class-A: smoother knee
 
         const int a = std::clamp (c.attack, 0, kNumSteps - 1);
-        st.discAtt = 1.0f - std::exp (-1.0f / (kAttackMs[a] * 0.001f * fs));
+        st.discAtt = 1.0f - std::exp (-1.0f / (kAttackMs[a] * kClassAAttackScale * 0.001f * fs));   // class-A sidechain
 
         const int rec = std::clamp (c.recover, 0, kNumSteps - 1);
         st.dual    = (rec == kDualIndex);
@@ -277,6 +277,7 @@ void Engine::processOversampled (juce::dsp::AudioBlock<float>& os) noexcept
 {
     const int nCh = (int) std::min (os.getNumChannels(), (size_t) numChannels);
     const int n   = (int) os.getNumSamples();
+    static const float classAOutGain = dbToGain (kClassAOutputGainDb);
     float* ptr[2] = { os.getChannelPointer (0), nCh > 1 ? os.getChannelPointer (1) : nullptr };
 
     // Fully hardwire-bypassed: leave the (latency-matched) signal untouched.
@@ -295,8 +296,8 @@ void Engine::processOversampled (juce::dsp::AudioBlock<float>& os) noexcept
             dry[ch] = ptr[ch][i];
 
             float v = st.inXf.process (dry[ch]);            // Lundahl-style input transformer
-            v = fastTanh (v * 0.15f) / 0.15f;               // class-A line amp, ~+16 dB headroom
-            v += 0.004f * v * v;                            // class-A 2nd harmonic
+            v = fastTanh (v * 0.12f) / 0.12f;               // discrete class-A line amp, ~+18 dB headroom (open)
+            v += 0.0025f * v * v;                           // gentle, purely even-order
             x[ch] = v;
 
             const float hp = st.scOpto.process (v);
@@ -372,7 +373,7 @@ void Engine::processOversampled (juce::dsp::AudioBlock<float>& os) noexcept
             const float amt = st.discAmt.getNextValue();
             const float mk  = st.discGain.getNextValue();
             x[ch] *= 1.0f + amt * (dbToGain (-gr) * mk - 1.0f);
-            x[ch] += amt * 0.012f * std::min (gr, 12.0f) / 12.0f * x[ch] * x[ch];   // class-A VCA colour
+            x[ch] += amt * 0.006f * std::min (gr, 12.0f) / 12.0f * x[ch] * x[ch];   // class-A VCA: low, even-order only
             blockDiscGr[ch] = std::max (blockDiscGr[ch], gr * amt);
         }
 
@@ -396,6 +397,7 @@ void Engine::processOversampled (juce::dsp::AudioBlock<float>& os) noexcept
                 }
             }
 
+            y *= classAOutGain;   // hotter class-A output stage
             const float dc = y - st.dcX + dcCoeff * st.dcY;
             st.dcX = y;
             st.dcY = dc;
