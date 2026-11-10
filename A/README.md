@@ -80,7 +80,7 @@ Requirements: Visual Studio 2022 with "Desktop development with C++", CMake 3.22
 
 ```bat
 cd BasementalOD2
-cmake -B build -G "Visual Studio 17 2022" -A x64
+cmake -B build -A x64
 cmake --build build --config Release
 ```
 
