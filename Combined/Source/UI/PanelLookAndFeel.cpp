@@ -77,7 +77,69 @@ void PanelLookAndFeel::drawRotarySlider (Graphics& g, int x, int y, int w, int h
     const auto bounds = Rectangle<int> (x, y, w, h).toFloat();
     const float R = jmin (bounds.getWidth(), bounds.getHeight()) * 0.5f - 2.0f;
     const float angle = startAngle + pos * (endAngle - startAngle);
-    drawBakeliteKnob (g, bounds.getCentre(), R, angle, s.isEnabled());
+
+    if (s.getProperties()["style"].toString() == "cream")
+        drawCreamKnob (g, bounds.getCentre(), R, angle);
+    else
+        drawBakeliteKnob (g, bounds.getCentre(), R, angle, s.isEnabled());
+}
+
+void PanelLookAndFeel::drawCreamKnob (Graphics& g, Point<float> c, float R, float angle)
+{
+    g.setColour (Colours::black.withAlpha (0.55f));
+    g.fillEllipse (c.x - R + R * 0.08f, c.y - R + R * 0.14f, R * 2.0f, R * 2.0f);
+
+    // knurled skirt
+    g.setGradientFill (ColourGradient (Colour (0xffeeeadf), c.x - R * 0.5f, c.y - R * 0.6f,
+                                       Colour (0xff8f897c), c.x + R * 0.7f, c.y + R * 0.9f, true));
+    g.fillEllipse (c.x - R, c.y - R, R * 2.0f, R * 2.0f);
+    g.setColour (Colours::black.withAlpha (0.18f));
+    for (int k = 0; k < 36; ++k)
+    {
+        const float a = (float) k * MathConstants<float>::twoPi / 36.0f;
+        g.drawLine (Line<float> (c.getPointOnCircumference (R * 0.82f, a), c.getPointOnCircumference (R * 0.99f, a)), 1.0f);
+    }
+
+    // cap
+    const float r2 = R * 0.74f;
+    g.setGradientFill (ColourGradient (Colour (0xfff7f4ec), c.x - r2 * 0.4f, c.y - r2 * 0.5f,
+                                       Colour (0xffb3ad9f), c.x + r2 * 0.7f, c.y + r2 * 0.8f, true));
+    g.fillEllipse (c.x - r2, c.y - r2, r2 * 2.0f, r2 * 2.0f);
+    g.setColour (Colours::black.withAlpha (0.25f));
+    g.drawEllipse (c.x - r2, c.y - r2, r2 * 2.0f, r2 * 2.0f, 1.0f);
+
+    // pointer
+    g.setColour (Colour (0xff141414));
+    g.drawLine (Line<float> (c.getPointOnCircumference (R * 0.25f, angle), c.getPointOnCircumference (R * 0.97f, angle)),
+                jmax (1.5f, R * 0.08f));
+}
+
+void PanelLookAndFeel::drawLampButton (Graphics& g, Rectangle<float> r, const String& text, bool lit, bool down)
+{
+    r = r.reduced (2.0f);
+    const float corner = r.getHeight() * 0.12f;
+
+    g.setColour (Colours::black.withAlpha (0.6f));
+    g.fillRoundedRectangle (r.translated (1.5f, 2.5f), corner);
+    g.setColour (Colour (0xff0a0a0a));
+    g.fillRoundedRectangle (r, corner);
+
+    auto cap = r.reduced (r.getWidth() * 0.07f).translated (0.0f, down ? 1.0f : 0.0f);
+    if (lit)
+    {
+        g.setGradientFill (ColourGradient (Colour (0x66fff1c8), cap.getCentreX(), cap.getCentreY(),
+                                           Colour (0x00fff1c8), cap.getRight() + cap.getWidth() * 0.4f, cap.getCentreY(), true));
+        g.fillRoundedRectangle (cap.expanded (cap.getWidth() * 0.25f), corner * 2.0f);
+    }
+    g.setGradientFill (ColourGradient (lit ? Colour (0xfffffbee) : Colour (0xffc9c3b3), cap.getX(), cap.getY(),
+                                       lit ? Colour (0xffe9dcb2) : Colour (0xff8e887a), cap.getX(), cap.getBottom(), false));
+    g.fillRoundedRectangle (cap, corner);
+    g.setColour (Colours::black.withAlpha (0.35f));
+    g.drawRoundedRectangle (cap, corner, 1.0f);
+
+    g.setColour (Colour (0xff1b1b1b).withAlpha (lit ? 1.0f : 0.75f));
+    g.setFont (panelFont (cap.getHeight() * 0.28f, true));
+    g.drawText (text, cap, Justification::centred, false);
 }
 
 //==============================================================================
@@ -146,8 +208,14 @@ void PanelLookAndFeel::drawToggleSwitch (Graphics& g, Point<float> c, float nutR
     chromeBall (tip, tw * 1.25f);
 }
 
-void PanelLookAndFeel::drawToggleButton (Graphics& g, ToggleButton& b, bool, bool)
+void PanelLookAndFeel::drawToggleButton (Graphics& g, ToggleButton& b, bool, bool isDown)
 {
+    if (b.getProperties()["style"].toString() == "lamp")
+    {
+        drawLampButton (g, b.getLocalBounds().toFloat(), b.getButtonText(), b.getToggleState(), isDown);
+        return;
+    }
+
     const auto bounds = b.getLocalBounds().toFloat();
     const auto c = bounds.getCentre();
     const float nutR = bounds.getHeight() * 0.30f;

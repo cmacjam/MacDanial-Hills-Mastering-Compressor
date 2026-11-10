@@ -26,6 +26,10 @@ private:
     struct ArcText    { juce::String text; float cx, cy, radius, angle, size; };
 
     void buildChannel (int ch);
+    void buildStereoLinks();
+    void syncStereoLinks (bool stereo);
+    void toggleParam (const juce::String& id);
+    void setParam (const juce::String& id, float denormalisedValue);
     void addKnob (juce::Slider&, const juce::String& paramId, float cx, float cy, float r,
                   const juce::StringArray& labels, const juce::String& title);
     void addToggle (juce::ToggleButton&, const juce::String& paramId, float cx, float cy,
@@ -38,7 +42,6 @@ private:
 
     juce::AudioProcessorValueTreeState& apvts;
     od2b::Engine& engine;
-    const juce::String prefix;
     od2::PanelLookAndFeel lnf;
 
     struct ChannelUI
@@ -67,6 +70,11 @@ private:
     std::array<std::atomic<float>*, 2> rawOptIn {}, rawDscIn {}, rawMeter {};
     std::atomic<float>* rawStereo = nullptr;
     bool lastStereo = false, firstTick = true;
+
+    // Stereo mode: left and right controls move together (either side can be used).
+    struct LinkPair { juce::RangedAudioParameter* l = nullptr; juce::RangedAudioParameter* r = nullptr; float lastL = 0, lastR = 0; };
+    std::vector<LinkPair> stereoLinks;
+    const juce::String prefix {};   // parameter-ID prefix (used when this panel is one unit of a stack)
     float eyeLevel = 0.0f;
     double lastTickMs = 0.0;
 

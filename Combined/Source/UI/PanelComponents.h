@@ -10,12 +10,21 @@ class Led final : public juce::Component
 public:
     Led() { setInterceptsMouseClicks (false, false); }
     void setColour (juce::Colour c) { colour = c; repaint(); }
+    // Optional: make the LED a click target (e.g. meter LEDs select the meter source).
+    void setOnClick (std::function<void()> fn)
+    {
+        onClick = std::move (fn);
+        setInterceptsMouseClicks (onClick != nullptr, false);
+        setMouseCursor (onClick != nullptr ? juce::MouseCursor::PointingHandCursor : juce::MouseCursor::NormalCursor);
+    }
+    void mouseDown (const juce::MouseEvent&) override { if (onClick) onClick(); }
     void setOn (bool shouldBeOn)    { if (on != shouldBeOn) { on = shouldBeOn; repaint(); } }
     void paint (juce::Graphics&) override;
 
 private:
     juce::Colour colour { colours::ledRed };
     bool on = false;
+    std::function<void()> onClick;
 };
 
 //==============================================================================

@@ -199,8 +199,8 @@ void VuMeter::drawStatic (Graphics& g)
         facePath.addRoundedRectangle (face, fw * 0.04f);
         g.reduceClipRegion (facePath);
 
-        g.setGradientFill (ColourGradient (Colour (0xfffaf3dc), face.getCentreX(), face.getY() + fh * 0.45f,
-                                           Colour (0xffe0cf9f), face.getX(), face.getBottom(), true));
+        g.setGradientFill (ColourGradient (faceCentre, face.getCentreX(), face.getY() + fh * 0.45f,
+                                           faceEdge, face.getX(), face.getBottom(), true));
         g.fillRect (face);
 
         // lamp glow

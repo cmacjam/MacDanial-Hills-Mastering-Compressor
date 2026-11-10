@@ -59,13 +59,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout OD2AudioProcessor::createPar
 
         layout.add (std::make_unique<juce::AudioParameterBool>   (pid (ids::optIn),     side + "Optical In", true));
         layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::optThr),    side + "Optical Threshold", 1, 24, 6));
-        layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::optGain),   side + "Optical Gain", 0, 24, 12));
+        layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::optGain),   side + "Optical Gain", 0, 24, 7));
         layout.add (std::make_unique<juce::AudioParameterBool>   (pid (ids::dscIn),     side + "Discrete In", true));
         layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::dscThr),    side + "Discrete Threshold", 1, 24, 6));
         layout.add (std::make_unique<juce::AudioParameterChoice> (pid (ids::dscRatio),  side + "Discrete Ratio", ratios, 0));
         layout.add (std::make_unique<juce::AudioParameterChoice> (pid (ids::dscAttack), side + "Discrete Attack", attacks, 5));
         layout.add (std::make_unique<juce::AudioParameterChoice> (pid (ids::dscRecov),  side + "Discrete Recover", recovers, 0));
-        layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::dscGain),   side + "Discrete Gain", 0, 24, 12));
+        layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::dscGain),   side + "Discrete Gain", 0, 24, 7));
         layout.add (std::make_unique<juce::AudioParameterBool>   (pid (ids::scFilter),  side + "Sidechain Filter", true));
         layout.add (std::make_unique<juce::AudioParameterChoice> (pid (ids::xfmr),      side + "Transformer", xfmrs, 0));
         layout.add (std::make_unique<juce::AudioParameterChoice> (pid (ids::meterSel),  side + "Meter Select", meters, c == 0 ? 0 : 1));

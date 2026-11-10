@@ -35,6 +35,7 @@ UnitPanelB::UnitPanelB (AudioProcessorValueTreeState& state, od2b::Engine& eng, 
 
     buildChannel (0);
     buildChannel (1);
+    buildStereoLinks();
 
     // ---- centre section -------------------------------------------------------
     addToggle (hardwire, prefix + ids::hardwireBypass, 800.0f, 540.0f, "HARDWIRE", "BYPASS", "IN", "OUT", true);
@@ -67,6 +68,62 @@ UnitPanelB::~UnitPanelB()
 }
 
 //==============================================================================
+void UnitPanelB::setParam (const String& id, float v)
+{
+    if (auto* p = apvts.getParameter (id))
+    {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (p->convertTo0to1 (v));
+        p->endChangeGesture();
+    }
+}
+
+void UnitPanelB::toggleParam (const String& id)
+{
+    if (auto* p = apvts.getParameter (id))
+        setParam (id, p->getValue() > 0.5f ? 0.0f : 1.0f);
+}
+
+void UnitPanelB::buildStereoLinks()
+{
+    for (const char* base : { ids::optIn, ids::optThr, ids::optGain, ids::dscIn, ids::dscThr, ids::dscRatio,
+                              ids::dscAttack, ids::dscRecov, ids::dscGain, ids::scFilter, ids::xfmr })
+    {
+        LinkPair lp;
+        lp.l = apvts.getParameter (prefix + ids::ch (0, base));
+        lp.r = apvts.getParameter (prefix + ids::ch (1, base));
+        if (lp.l != nullptr && lp.r != nullptr)
+        {
+            lp.lastL = lp.l->getValue();
+            lp.lastR = lp.r->getValue();
+            stereoLinks.push_back (lp);
+        }
+    }
+}
+
+void UnitPanelB::syncStereoLinks (bool stereo)
+{
+    auto push = [] (RangedAudioParameter* p, float v)
+    {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (v);
+        p->endChangeGesture();
+    };
+
+    const bool justLinked = stereo && ! lastStereo && ! firstTick;
+    for (auto& lp : stereoLinks)
+    {
+        const float l = lp.l->getValue(), r = lp.r->getValue();
+        if (stereo)
+        {
+            if (justLinked || l != lp.lastL) { if (r != l) push (lp.r, l); }   // left moved (or link engaged)
+            else if (r != lp.lastR)          { push (lp.l, r); }               // right moved
+        }
+        lp.lastL = lp.l->getValue();
+        lp.lastR = lp.r->getValue();
+    }
+}
+
 StringArray UnitPanelB::range (int from, int to)
 {
     StringArray s;
@@ -133,6 +190,8 @@ void UnitPanelB::buildChannel (int ch)
     c.dscLed.setColour (colours::ledGreen);
     addAndMakeVisible (c.optLed);
     addAndMakeVisible (c.dscLed);
+    c.optLed.setOnClick ([this, ch] { toggleParam (prefix + ids::ch (ch, ids::optIn)); });
+    c.dscLed.setOnClick ([this, ch] { toggleParam (prefix + ids::ch (ch, ids::dscIn)); });
     place (c.optLed, { mx (240.0f) - 13.0f, 222.0f - 13.0f, 26.0f, 26.0f });
     place (c.dscLed, { mx (684.0f) - 13.0f, 428.0f - 13.0f, 26.0f, 26.0f });
 
@@ -173,6 +232,7 @@ void UnitPanelB::buildChannel (int ch)
         led.setColour (k == 2 ? colours::ledGreen : colours::ledGreen);
         addAndMakeVisible (led);
         place (led, { xs[ch][k] - 11.0f, 394.0f - 11.0f, 22.0f, 22.0f });
+        led.setOnClick ([this, ch, k] { setParam (prefix + ids::ch (ch, ids::meterSel), (float) k); });
         textSpecs.push_back ({ names[k], xs[ch][k] - 20.0f, 394.0f, 10.0f, true });
     }
 
@@ -184,9 +244,10 @@ void UnitPanelB::buildChannel (int ch)
 //==============================================================================
 void UnitPanelB::resized()
 {
-    const float s = (float) getWidth() / kBaseW;
+    // Independent X/Y scale so the panel can be zoomed or stretched.
+    const float sx = (float) getWidth() / kBaseW, sy = (float) getHeight() / kBaseH;
     for (auto& [comp, r] : placements)
-        comp->setBounds ((r * s).toNearestInt());
+        comp->setBounds (Rectangle<float> (r.getX() * sx, r.getY() * sy, r.getWidth() * sx, r.getHeight() * sy).toNearestInt());
 
     renderBackground();
 }
@@ -199,7 +260,7 @@ void UnitPanelB::renderBackground()
     constexpr float k = 2.0f;
     background = Image (Image::RGB, (int) (w * k), (int) (h * k), true);
     Graphics g (background);
-    g.addTransform (AffineTransform::scale (k * (float) w / kBaseW));
+    g.addTransform (AffineTransform::scale (k * (float) w / kBaseW, k * (float) h / kBaseH));
     drawPanel (g);
 }
 
@@ -387,23 +448,10 @@ void UnitPanelB::timerCallback()
     }
 
 
-    // Right-hand controls are inactive in Stereo (meter select stays independent).
-    if (firstTick || stereo != lastStereo)
-    {
-        auto& r = chans[1];
-        for (Component* comp : std::initializer_list<Component*> {
-                 &r.optThr, &r.optGain, &r.ratio, &r.attack, &r.recover, &r.dscThr, &r.dscGain,
-                 &r.optIn, &r.dscIn, &r.scFilter, r.xfmr.get() })
-        {
-            if (comp != nullptr)
-            {
-                comp->setEnabled (! stereo);
-                comp->setAlpha (stereo ? 0.55f : 1.0f);
-            }
-        }
-        lastStereo = stereo;
-        firstTick = false;
-    }
+    // Stereo: both sides' controls move together (the left settings drive the audio).
+    syncStereoLinks (stereo);
+    lastStereo = stereo;
+    firstTick = false;
 
     // Magic eye follows output peaks: fast attack, slow decay.
     const float peak   = eng.outPeak.exchange (0.0f, std::memory_order_relaxed);

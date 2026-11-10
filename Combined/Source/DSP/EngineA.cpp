@@ -56,9 +56,9 @@ void Biquad::setHighShelf (double fs, double f, double q, double gainDb) noexcep
 
 //==============================================================================
 // Transformer voicings
-//   Nickel : cleanest, tight lows, "air band" sheen on top.
-//   Iron   : low-mid weight, a little softer top, moderate harmonics.
-//   Steel  : most colour - 40 Hz bump, rounded top, strongest LF core saturation.
+//   Nickel : least distortion, natural low end, gentle lift around 10 kHz ("air").
+//   Iron   : Class-A output stage - mostly even-order harmonics, ~110 Hz lift, clear highs.
+//   Steel  : most (still mild) distortion and transient softening, ~40 Hz lift, open top.
 void Transformer::configure (int type, double fs) noexcept
 {
     double fluxHz = 120.0;
@@ -66,21 +66,21 @@ void Transformer::configure (int type, double fs) noexcept
     switch (type)
     {
         case nickel:
-            lo.setLowShelf  (fs, 28.0,    0.70, -0.4);
-            hi.setHighShelf (fs, 16000.0, 0.60, +0.8);
-            drive = 0.12f; fluxDrive = 1.0f; fluxAmt = 0.04f; even = 0.000f; fluxHz = 150.0;
+            lo.setLowShelf  (fs, 30.0,    0.70,  0.0);   // natural, flat low end
+            hi.setPeak      (fs, 10000.0, 0.50, +0.8);   // the 10 kHz sheen
+            drive = 0.10f; fluxDrive = 1.0f; fluxAmt = 0.03f; even = 0.000f; fluxHz = 150.0;
             break;
 
         case iron:
-            lo.setPeak      (fs, 110.0,   0.70, +0.6);
-            hi.setHighShelf (fs, 13000.0, 0.60, -0.4);
-            drive = 0.25f; fluxDrive = 1.3f; fluxAmt = 0.12f; even = 0.005f; fluxHz = 120.0;
+            lo.setPeak      (fs, 110.0,   0.70, +0.8);   // ~110 Hz weight
+            hi.setHighShelf (fs, 14000.0, 0.60,  0.0);   // clear highs
+            drive = 0.14f; fluxDrive = 1.3f; fluxAmt = 0.08f; even = 0.018f; fluxHz = 120.0;  // class-A: even-order
             break;
 
         default: // steel
-            lo.setPeak      (fs, 40.0,    1.00, +1.5);
-            hi.setHighShelf (fs, 9500.0,  0.60, -0.7);
-            drive = 0.36f; fluxDrive = 1.6f; fluxAmt = 0.20f; even = 0.010f; fluxHz = 100.0;
+            lo.setPeak      (fs, 40.0,    0.90, +1.6);   // big, tight 40 Hz
+            hi.setHighShelf (fs, 12000.0, 0.60, +0.2);   // open, detailed top
+            drive = 0.34f; fluxDrive = 1.6f; fluxAmt = 0.22f; even = 0.006f; fluxHz = 100.0;
             break;
     }
 

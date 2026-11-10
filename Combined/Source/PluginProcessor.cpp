@@ -12,6 +12,17 @@ MDHAudioProcessor::MDHAudioProcessor()
 {
     bindUnit (unitA, "A_");
     bindUnit (unitB, "B_");
+
+    auto raw = [this] (const juce::String& id) { auto* p = apvts.getRawParameterValue (id); jassert (p != nullptr); return p; };
+    unitC.power  = raw ("C_POWER");
+    unitC.stereo = raw ("C_STEREO");
+    for (int c = 0; c < 2; ++c)
+    {
+        const juce::String s = c == 0 ? "C_L_" : "C_R_";
+        auto& ch = unitC.ch[(size_t) c];
+        ch.in = raw (s + "IN");   ch.thr = raw (s + "THR");       ch.ratio = raw (s + "RATIO");
+        ch.attack = raw (s + "ATTACK"); ch.release = raw (s + "RELEASE"); ch.makeup = raw (s + "MAKEUP");
+    }
     masterBypassRaw   = apvts.getRawParameterValue (masterBypassId);
     masterBypassParam = apvts.getParameter (masterBypassId);
 }
@@ -73,18 +84,36 @@ juce::AudioProcessorValueTreeState::ParameterLayout MDHAudioProcessor::createPar
 
             layout.add (std::make_unique<juce::AudioParameterBool>   (pid (ids::optIn),     name + "Optical In", ! isA));
             layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::optThr),    name + "Optical Threshold", 1, 24, 6));
-            layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::optGain),   name + "Optical Gain", 0, 24, 12));
+            layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::optGain),   name + "Optical Gain", 0, 24, 7));
             layout.add (std::make_unique<juce::AudioParameterBool>   (pid (ids::dscIn),     name + "Discrete In", true));
             layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::dscThr),    name + "Discrete Threshold", 1, 24, 6));
             layout.add (std::make_unique<juce::AudioParameterChoice> (pid (ids::dscRatio),  name + "Discrete Ratio", ratios, 0));
             layout.add (std::make_unique<juce::AudioParameterChoice> (pid (ids::dscAttack), name + "Discrete Attack", attacks, 5));
             layout.add (std::make_unique<juce::AudioParameterChoice> (pid (ids::dscRecov),  name + "Discrete Recover", recovers, 0));
-            layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::dscGain),   name + "Discrete Gain", 0, 24, 12));
+            layout.add (std::make_unique<juce::AudioParameterInt>    (pid (ids::dscGain),   name + "Discrete Gain", 0, 24, 7));
             layout.add (std::make_unique<juce::AudioParameterBool>   (pid (ids::scFilter),  name + "Sidechain Filter", true));
             layout.add (std::make_unique<juce::AudioParameterChoice> (pid (ids::xfmr),      name + "Transformer", xfmrs, 0));
             layout.add (std::make_unique<juce::AudioParameterChoice> (pid (ids::meterSel),  name + "Meter Select", meters, c == 0 ? 0 : 1));
         }
     }
+    // ---- Unit C: bus compressor (starts powered, both channels OUT) ----
+    layout.add (std::make_unique<juce::AudioParameterBool> (PID { "C_POWER", 1 },  "C Power", true));
+    layout.add (std::make_unique<juce::AudioParameterBool> (PID { "C_STEREO", 1 }, "C Stereo Link", true));
+    for (int c = 0; c < 2; ++c)
+    {
+        const juce::String s = c == 0 ? "C_L_" : "C_R_", n = c == 0 ? "C L " : "C R ";
+        layout.add (std::make_unique<juce::AudioParameterBool>   (PID { s + "IN", 1 },      n + "In", false));
+        layout.add (std::make_unique<juce::AudioParameterFloat>  (PID { s + "THR", 1 },     n + "Threshold",
+                        juce::NormalisableRange<float> (-15.0f, 15.0f, 0.5f), 0.0f));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (PID { s + "RATIO", 1 },   n + "Ratio", juce::StringArray { "2:1", "4:1", "10:1" }, 0));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (PID { s + "ATTACK", 1 },  n + "Attack",
+                        juce::StringArray { "0.1 ms", "0.3 ms", "1 ms", "3 ms", "10 ms", "30 ms" }, 3));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (PID { s + "RELEASE", 1 }, n + "Release",
+                        juce::StringArray { "0.1 s", "0.3 s", "0.6 s", "1.2 s", "Auto" }, 4));
+        layout.add (std::make_unique<juce::AudioParameterFloat>  (PID { s + "MAKEUP", 1 },  n + "Make-up",
+                        juce::NormalisableRange<float> (0.0f, 15.0f, 0.5f), 0.0f));
+    }
+
     return layout;
 }
 
@@ -93,6 +122,7 @@ void MDHAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     engineA.prepare (sampleRate, samplesPerBlock, getTotalNumOutputChannels());
     engineB.prepare (sampleRate, samplesPerBlock, getTotalNumOutputChannels());
+    engineC.prepare (sampleRate, getTotalNumOutputChannels());
     setLatencySamples (engineA.getLatencySamples() + engineB.getLatencySamples());
 }
 
@@ -146,7 +176,25 @@ void MDHAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
     readUnit (unitB, sB, master);
 
     engineA.process (buffer, sA);   // top unit
-    engineB.process (buffer, sB);   // bottom unit
+    engineB.process (buffer, sB);   // middle unit
+
+    od2c::Settings sC;
+    auto on = [] (const std::atomic<float>* p) { return p->load (std::memory_order_relaxed) > 0.5f; };
+    sC.power       = on (unitC.power);
+    sC.stereo      = on (unitC.stereo);
+    sC.forceBypass = master;
+    for (int c = 0; c < 2; ++c)
+    {
+        const auto& pc = unitC.ch[(size_t) c];
+        auto& cs = sC.ch[c];
+        cs.in        = on (pc.in);
+        cs.threshold = pc.thr->load (std::memory_order_relaxed);
+        cs.ratio     = (int) std::lround (pc.ratio->load (std::memory_order_relaxed));
+        cs.attack    = (int) std::lround (pc.attack->load (std::memory_order_relaxed));
+        cs.release   = (int) std::lround (pc.release->load (std::memory_order_relaxed));
+        cs.makeupDb  = pc.makeup->load (std::memory_order_relaxed);
+    }
+    engineC.process (buffer, sC);   // bottom unit (1U bus compressor)
 }
 
 //==============================================================================

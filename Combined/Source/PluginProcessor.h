@@ -2,10 +2,12 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "DSP/EngineA.h"
 #include "DSP/EngineB.h"
+#include "DSP/BusComp.h"
 #include "ParamIDs.h"
+#include "Presets.h"
 
-// MacDanial Hills Mastering Compressor: Model A (standard) stacked above
-// Model B (Class-A), wired in series: input -> A -> B -> output.
+// MacDanial Hills Mastering Compressor: Model A (standard) above Model B (Class-A)
+// above unit C (1U bus compressor), wired in series: input -> A -> B -> C -> output.
 class MDHAudioProcessor final : public juce::AudioProcessor
 {
 public:
@@ -28,10 +30,11 @@ public:
     bool isMidiEffect() const override                  { return false; }
     double getTailLengthSeconds() const override        { return 0.0; }
 
-    int getNumPrograms() override                       { return 1; }
-    int getCurrentProgram() override                    { return 0; }
-    void setCurrentProgram (int) override               {}
-    const juce::String getProgramName (int) override    { return "Default"; }
+    // Factory presets are exposed to the DAW's preset menu as programs.
+    int getNumPrograms() override                       { return presets.getNumFactory(); }
+    int getCurrentProgram() override                    { return juce::jmax (0, presets.getCurrentFactoryIndex()); }
+    void setCurrentProgram (int index) override         { presets.loadFactory (index); }
+    const juce::String getProgramName (int index) override { return presets.getFactoryName (index); }
     void changeProgramName (int, const juce::String&) override {}
 
     void getStateInformation (juce::MemoryBlock& destData) override;
@@ -45,6 +48,8 @@ public:
     juce::AudioProcessorValueTreeState apvts;
     od2a::Engine engineA;
     od2b::Engine engineB;
+    od2c::BusComp engineC;
+    PresetManager presets { apvts };
 
     static constexpr const char* masterBypassId = "MASTER_BYPASS";
 
@@ -67,6 +72,13 @@ private:
     template <typename SettingsT> void readUnit (const UnitParams&, SettingsT&, bool masterBypass) const;
 
     UnitParams unitA, unitB;
+    struct BusParams
+    {
+        std::atomic<float>* power = nullptr; std::atomic<float>* stereo = nullptr;
+        struct Ch { std::atomic<float>* in = nullptr; std::atomic<float>* thr = nullptr; std::atomic<float>* ratio = nullptr;
+                    std::atomic<float>* attack = nullptr; std::atomic<float>* release = nullptr; std::atomic<float>* makeup = nullptr; };
+        std::array<Ch, 2> ch;
+    } unitC;
     std::atomic<float>* masterBypassRaw = nullptr;
     juce::AudioProcessorParameter* masterBypassParam = nullptr;
 

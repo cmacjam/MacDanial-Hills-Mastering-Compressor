@@ -1,5 +1,5 @@
 # ==============================================================================
-#  MacDanial Hills Mastering Compressor - Model A stacked over Model B (Basemental)
+#  MacDanial Hills Mastering Compressor - Model A, Model B and bus compressor C stacked (Basemental)
 #  Optical -> Class-A Discrete VCA, Lundahl-style input transformer,
 #  switchable Nickel / Iron / Steel output transformers.  JUCE 8, CMake.
 # ==============================================================================
@@ -57,6 +57,10 @@ target_sources(MacDanialHillsStack PRIVATE
     Source/DSP/EngineB.cpp
     Source/UnitPanelA.cpp
     Source/UnitPanelB.cpp
+    Source/UnitPanelC.cpp
+    Source/Presets.cpp
+    Source/PopOutWindow.cpp
+    Source/DSP/BusComp.cpp
     Source/UI/PanelLookAndFeel.cpp
     Source/UI/PanelComponents.cpp
 )

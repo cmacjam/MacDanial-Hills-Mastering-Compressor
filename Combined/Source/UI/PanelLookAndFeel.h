@@ -39,6 +39,8 @@ public:
                            bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
 
     // ---- Shared drawing primitives -------------------------------------------
+    static void drawCreamKnob (juce::Graphics&, juce::Point<float> centre, float radius, float angle);
+    static void drawLampButton (juce::Graphics&, juce::Rectangle<float>, const juce::String& text, bool lit, bool down);
     static void drawBakeliteKnob (juce::Graphics&, juce::Point<float> centre, float radius, float angle, bool enabled);
     static void drawToggleSwitch (juce::Graphics&, juce::Point<float> centre, float nutRadius,
                                   juce::Point<float> direction, float length);

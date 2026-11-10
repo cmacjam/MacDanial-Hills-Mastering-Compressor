@@ -19,8 +19,15 @@ inline constexpr int   kDualIndex         = 5;
 
 // Calibration: threshold step 1 = 0 dBFS (minimum compression), step 24 = -28.75 dBFS.
 inline float thresholdDb (int step) noexcept { return -1.25f * (float) (std::clamp (step, 1, 24) - 1); }
-// Gain step 12 = unity, 1 dB per step (-12 .. +12 dB).
-inline float makeupDb (int step) noexcept    { return (float) (std::clamp (step, 0, 24) - 12); }
+// Gain: 24-position switch, unity at position 7 (as on the hardware), fine 0.5 dB steps
+// near unity and coarser 1.25 dB steps further out:  pos 0 = -5.75 dB ... pos 24 = +18.25 dB.
+inline float makeupDb (int step) noexcept
+{
+    const int d = std::clamp (step, 0, 24) - 7;
+    const int a = std::abs (d);
+    const float db = a <= 4 ? 0.5f * (float) a : 2.0f + 1.25f * (float) (a - 4);
+    return d < 0 ? -db : db;
+}
 
 inline float dbToGain (float db) noexcept    { return std::exp (db * 0.115129255f); }
 inline float gainToDb (float g) noexcept     { return 8.68588964f * std::log (std::max (g, 1.0e-6f)); }

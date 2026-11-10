@@ -10,12 +10,21 @@ class Led final : public juce::Component
 public:
     Led() { setInterceptsMouseClicks (false, false); }
     void setColour (juce::Colour c) { colour = c; repaint(); }
+    // Optional: make the LED a click target (e.g. meter LEDs select the meter source).
+    void setOnClick (std::function<void()> fn)
+    {
+        onClick = std::move (fn);
+        setInterceptsMouseClicks (onClick != nullptr, false);
+        setMouseCursor (onClick != nullptr ? juce::MouseCursor::PointingHandCursor : juce::MouseCursor::NormalCursor);
+    }
+    void mouseDown (const juce::MouseEvent&) override { if (onClick) onClick(); }
     void setOn (bool shouldBeOn)    { if (on != shouldBeOn) { on = shouldBeOn; repaint(); } }
     void paint (juce::Graphics&) override;
 
 private:
     juce::Colour colour { colours::ledRed };
     bool on = false;
+    std::function<void()> onClick;
 };
 
 //==============================================================================
@@ -57,6 +66,7 @@ public:
     // vuDb: reading relative to 0 VU (GR modes pass -GR, output mode passes level - ref)
     void setReading (float vuDb, float dtSeconds);
     void setBrand (juce::String b) { brand = std::move (b); renderCaches(); }
+    void setFaceColours (juce::Colour centre, juce::Colour edge) { faceCentre = centre; faceEdge = edge; renderCaches(); }
 
     void paint (juce::Graphics&) override;
     void resized() override { renderCaches(); }
@@ -72,6 +82,7 @@ private:
 
     juce::Image staticLayer, overlayLayer;
     juce::String brand { "basemental audio" };
+    juce::Colour faceCentre { 0xfffaf3dc }, faceEdge { 0xffe0cf9f };
     float pos = 0.0f;
 };
 

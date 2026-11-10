@@ -17,6 +17,7 @@ UnitPanelA::UnitPanelA (AudioProcessorValueTreeState& state, od2a::Engine& eng, 
 
     buildChannel (0);
     buildChannel (1);
+    buildStereoLinks();
 
     // ---- centre section -------------------------------------------------------
     addToggle (stereoSw, prefix + ids::stereo, 800.0f, 450.0f, {}, {}, {}, {}, true);
@@ -25,6 +26,8 @@ UnitPanelA::UnitPanelA (AudioProcessorValueTreeState& state, od2a::Engine& eng, 
     monoLed.setColour (colours::ledBlue);
     stereoLed.setColour (colours::ledRed);
     for (auto* l : { &monoLed, &stereoLed }) addAndMakeVisible (*l);
+    monoLed.setOnClick   ([this] { setParam (prefix + ids::stereo, 0.0f); });
+    stereoLed.setOnClick ([this] { setParam (prefix + ids::stereo, 1.0f); });
     place (monoLed,   { 722.0f, 437.0f, 26.0f, 26.0f });
     place (stereoLed, { 852.0f, 437.0f, 26.0f, 26.0f });
     textSpecs.push_back ({ "DUAL MONO", 735.0f, 420.0f, 12.0f, true });
@@ -35,8 +38,6 @@ UnitPanelA::UnitPanelA (AudioProcessorValueTreeState& state, od2a::Engine& eng, 
 
     rawStereo = apvts.getRawParameterValue (prefix + ids::stereo);
 
-    for (auto& ch : chans)
-        ch.vu.setFaceColours (Colour (0xfff6e3a2), Colour (0xffcfa94c));   // warm yellow Model A face
 
     lastTickMs = Time::getMillisecondCounterHiRes();
     startTimerHz (60);
@@ -49,6 +50,62 @@ UnitPanelA::~UnitPanelA()
 }
 
 //==============================================================================
+void UnitPanelA::setParam (const String& id, float v)
+{
+    if (auto* p = apvts.getParameter (id))
+    {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (p->convertTo0to1 (v));
+        p->endChangeGesture();
+    }
+}
+
+void UnitPanelA::toggleParam (const String& id)
+{
+    if (auto* p = apvts.getParameter (id))
+        setParam (id, p->getValue() > 0.5f ? 0.0f : 1.0f);
+}
+
+void UnitPanelA::buildStereoLinks()
+{
+    for (const char* base : { ids::optIn, ids::optThr, ids::optGain, ids::dscIn, ids::dscThr, ids::dscRatio,
+                              ids::dscAttack, ids::dscRecov, ids::dscGain, ids::scFilter, ids::xfmr })
+    {
+        LinkPair lp;
+        lp.l = apvts.getParameter (prefix + ids::ch (0, base));
+        lp.r = apvts.getParameter (prefix + ids::ch (1, base));
+        if (lp.l != nullptr && lp.r != nullptr)
+        {
+            lp.lastL = lp.l->getValue();
+            lp.lastR = lp.r->getValue();
+            stereoLinks.push_back (lp);
+        }
+    }
+}
+
+void UnitPanelA::syncStereoLinks (bool stereo)
+{
+    auto push = [] (RangedAudioParameter* p, float v)
+    {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (v);
+        p->endChangeGesture();
+    };
+
+    const bool justLinked = stereo && ! lastStereo && ! firstTick;
+    for (auto& lp : stereoLinks)
+    {
+        const float l = lp.l->getValue(), r = lp.r->getValue();
+        if (stereo)
+        {
+            if (justLinked || l != lp.lastL) { if (r != l) push (lp.r, l); }   // left moved (or link engaged)
+            else if (r != lp.lastR)          { push (lp.l, r); }               // right moved
+        }
+        lp.lastL = lp.l->getValue();
+        lp.lastR = lp.r->getValue();
+    }
+}
+
 StringArray UnitPanelA::range (int from, int to)
 {
     StringArray s;
@@ -115,6 +172,8 @@ void UnitPanelA::buildChannel (int ch)
     c.dscLed.setColour (colours::ledRed);
     addAndMakeVisible (c.optLed);
     addAndMakeVisible (c.dscLed);
+    c.optLed.setOnClick ([this, ch] { toggleParam (prefix + ids::ch (ch, ids::optIn)); });
+    c.dscLed.setOnClick ([this, ch] { toggleParam (prefix + ids::ch (ch, ids::dscIn)); });
     place (c.optLed, { mx (240.0f) - 13.0f, 222.0f - 13.0f, 26.0f, 26.0f });
     place (c.dscLed, { mx (684.0f) - 13.0f, 428.0f - 13.0f, 26.0f, 26.0f });
 
@@ -145,6 +204,7 @@ void UnitPanelA::buildChannel (int ch)
 
     // ---- VU meter + O / D / VU indicator LEDs beneath it
     c.vu.setBrand ("macdanial hills");
+    c.vu.setFaceColours (Colour (0xfff6e3a2), Colour (0xffcfa94c));   // warm yellow Model A face
     addAndMakeVisible (c.vu);
     place (c.vu, { ch == 0 ? 425.0f : 810.0f, 35.0f, 365.0f, 340.0f });
 
@@ -156,6 +216,7 @@ void UnitPanelA::buildChannel (int ch)
         led.setColour (k == 2 ? colours::ledBlue : colours::ledRed);
         addAndMakeVisible (led);
         place (led, { xs[ch][k] - 11.0f, 394.0f - 11.0f, 22.0f, 22.0f });
+        led.setOnClick ([this, ch, k] { setParam (prefix + ids::ch (ch, ids::meterSel), (float) k); });
         textSpecs.push_back ({ names[k], xs[ch][k] - 20.0f, 394.0f, 10.0f, true });
     }
 
@@ -167,9 +228,10 @@ void UnitPanelA::buildChannel (int ch)
 //==============================================================================
 void UnitPanelA::resized()
 {
-    const float s = (float) getWidth() / kBaseW;
+    // Independent X/Y scale so the panel can be zoomed or stretched.
+    const float sx = (float) getWidth() / kBaseW, sy = (float) getHeight() / kBaseH;
     for (auto& [comp, r] : placements)
-        comp->setBounds ((r * s).toNearestInt());
+        comp->setBounds (Rectangle<float> (r.getX() * sx, r.getY() * sy, r.getWidth() * sx, r.getHeight() * sy).toNearestInt());
 
     renderBackground();
 }
@@ -182,7 +244,7 @@ void UnitPanelA::renderBackground()
     constexpr float k = 2.0f;
     background = Image (Image::RGB, (int) (w * k), (int) (h * k), true);
     Graphics g (background);
-    g.addTransform (AffineTransform::scale (k * (float) w / kBaseW));
+    g.addTransform (AffineTransform::scale (k * (float) w / kBaseW, k * (float) h / kBaseH));
     drawPanel (g);
 }
 
@@ -324,23 +386,10 @@ void UnitPanelA::timerCallback()
     monoLed.setOn (! stereo);
     stereoLed.setOn (stereo);
 
-    // Right-hand controls are inactive in Stereo (meter select stays independent).
-    if (firstTick || stereo != lastStereo)
-    {
-        auto& r = chans[1];
-        for (Component* comp : std::initializer_list<Component*> {
-                 &r.optThr, &r.optGain, &r.ratio, &r.attack, &r.recover, &r.dscThr, &r.dscGain,
-                 &r.optIn, &r.dscIn, &r.scFilter, r.xfmr.get() })
-        {
-            if (comp != nullptr)
-            {
-                comp->setEnabled (! stereo);
-                comp->setAlpha (stereo ? 0.55f : 1.0f);
-            }
-        }
-        lastStereo = stereo;
-        firstTick = false;
-    }
+    // Stereo: both sides' controls move together (the left settings drive the audio).
+    syncStereoLinks (stereo);
+    lastStereo = stereo;
+    firstTick = false;
 
     // Magic eye follows output peaks: fast attack, slow decay.
     const float peak   = eng.outPeak.exchange (0.0f, std::memory_order_relaxed);

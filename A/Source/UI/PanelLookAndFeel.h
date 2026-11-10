@@ -12,6 +12,14 @@ namespace colours
     inline const juce::Colour ledBlue    { 0xff2fb8ff };
     inline const juce::Colour vuFace     { 0xfff0d78c };
     inline const juce::Colour vuRed      { 0xffd8261c };
+    // Class-A copper edition
+    inline const juce::Colour copperLight { 0xffeaa572 };
+    inline const juce::Colour copperMid   { 0xffd98a52 };
+    inline const juce::Colour copperDark  { 0xffb5643a };
+    inline const juce::Colour engrave     { 0xff4a2410 };   // dark engraved legend
+    inline const juce::Colour engraveHi   { 0x66ffd9b8 };   // engraving highlight
+    inline const juce::Colour plateText   { 0xfff2d2b4 };   // numerals on black dial plates
+    inline const juce::Colour ledGreen    { 0xff2bff6e };
 }
 
 // Rotary angles shared by knobs and the panel legends (clockwise from 12 o'clock).
@@ -31,6 +39,8 @@ public:
                            bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
 
     // ---- Shared drawing primitives -------------------------------------------
+    static void drawCreamKnob (juce::Graphics&, juce::Point<float> centre, float radius, float angle);
+    static void drawLampButton (juce::Graphics&, juce::Rectangle<float>, const juce::String& text, bool lit, bool down);
     static void drawBakeliteKnob (juce::Graphics&, juce::Point<float> centre, float radius, float angle, bool enabled);
     static void drawToggleSwitch (juce::Graphics&, juce::Point<float> centre, float nutRadius,
                                   juce::Point<float> direction, float length);
@@ -39,6 +49,7 @@ public:
     static void drawTextOnArc (juce::Graphics&, const juce::String& text, const juce::Font& font,
                                juce::Point<float> centre, float radius, float centreAngle);
     static juce::Font panelFont (float height, bool bold = true);
+    static float textWidth (const juce::Font&, const juce::String&);
 };
 
 } // namespace od2
