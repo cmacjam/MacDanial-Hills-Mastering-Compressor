@@ -23,8 +23,8 @@ UnitPanelA::UnitPanelA (AudioProcessorValueTreeState& state, od2a::Engine& eng, 
     addToggle (stereoSw, prefix + ids::stereo, 800.0f, 450.0f, {}, {}, {}, {}, true);
     addToggle (hardwire, prefix + ids::hardwireBypass, 800.0f, 545.0f, "HARDWIRE", "BYPASS", "IN", "OUT", true);
 
-    monoLed.setColour (colours::ledBlue);
-    stereoLed.setColour (colours::ledRed);
+    monoLed.setColour (colours::ledGreen);
+    stereoLed.setColour (colours::ledGreen);
     for (auto* l : { &monoLed, &stereoLed }) addAndMakeVisible (*l);
     monoLed.setOnClick   ([this] { setParam (prefix + ids::stereo, 0.0f); });
     stereoLed.setOnClick ([this] { setParam (prefix + ids::stereo, 1.0f); });
@@ -168,8 +168,8 @@ void UnitPanelA::buildChannel (int ch)
     addToggle (c.dscIn,    id (ids::dscIn),    mx (632.0f), 455.0f, "DISCRETE",  "BYPASS", "IN", "OUT", false);
 
     // ---- stage LEDs (lit = section IN)
-    c.optLed.setColour (colours::ledRed);
-    c.dscLed.setColour (colours::ledRed);
+    c.optLed.setColour (colours::ledGreen);
+    c.dscLed.setColour (colours::ledGreen);
     addAndMakeVisible (c.optLed);
     addAndMakeVisible (c.dscLed);
     c.optLed.setOnClick ([this, ch] { toggleParam (prefix + ids::ch (ch, ids::optIn)); });
@@ -180,7 +180,7 @@ void UnitPanelA::buildChannel (int ch)
     // ---- transformer select (3-way toggle with blue LEDs)
     if (auto* xp = apvts.getParameter (id (ids::xfmr)))
     {
-        c.xfmr = std::make_unique<LedSelector> (*xp, LedSelector::Style::verticalToggle, colours::ledBlue, ch == 1);
+        c.xfmr = std::make_unique<LedSelector> (*xp, LedSelector::Style::verticalToggle, colours::ledGreen, ch == 1);
         addAndMakeVisible (*c.xfmr);
         const float x0 = ch == 0 ? 660.0f : 865.0f;
         place (*c.xfmr, { x0, 535.0f, 75.0f, 120.0f });
@@ -192,7 +192,7 @@ void UnitPanelA::buildChannel (int ch)
     // ---- meter select (mini knob with LEDs on an arc)
     if (auto* mp = apvts.getParameter (id (ids::meterSel)))
     {
-        c.meterSel = std::make_unique<LedSelector> (*mp, LedSelector::Style::miniKnob, colours::ledBlue, false);
+        c.meterSel = std::make_unique<LedSelector> (*mp, LedSelector::Style::miniKnob, colours::ledGreen, false);
         addAndMakeVisible (*c.meterSel);
         const float kx = mx (345.0f);
         place (*c.meterSel, { kx - 55.0f, 50.0f, 110.0f, 90.0f });   // knob centre = (kx, 113)
@@ -213,7 +213,7 @@ void UnitPanelA::buildChannel (int ch)
     for (int k = 0; k < 3; ++k)
     {
         auto& led = c.meterLeds[(size_t) k];
-        led.setColour (k == 2 ? colours::ledBlue : colours::ledRed);
+        led.setColour (k == 2 ? colours::ledGreen : colours::ledGreen);
         addAndMakeVisible (led);
         place (led, { xs[ch][k] - 11.0f, 394.0f - 11.0f, 22.0f, 22.0f });
         led.setOnClick ([this, ch, k] { setParam (prefix + ids::ch (ch, ids::meterSel), (float) k); });
