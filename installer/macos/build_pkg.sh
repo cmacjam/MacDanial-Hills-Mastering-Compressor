@@ -1,9 +1,10 @@
 #!/bin/bash
 # Builds a macOS installer (.pkg) that installs the AU and VST3 system-wide.
-# Usage: build_pkg.sh "<path/to/Product.component>" "<path/to/Product.vst3>" <version> "<output.pkg>"
+# Usage: build_pkg.sh "<Product.component>" "<Product.vst3>" <version> "<output.pkg>" ["<Product.aaxplugin>"]
+# The AAX (Pro Tools) bundle is optional.
 set -euo pipefail
 
-COMPONENT="$1"; VST3="$2"; VERSION="$3"; OUT="$4"
+COMPONENT="$1"; VST3="$2"; VERSION="$3"; OUT="$4"; AAX="${5:-}"
 NAME="$(basename "$COMPONENT" .component)"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 WORK="$(mktemp -d)"
@@ -27,6 +28,16 @@ stage_and_build () {   # $1 = bundle, $2 = install dir, $3 = package id, $4 = ou
 
 stage_and_build "$COMPONENT" "/Library/Audio/Plug-Ins/Components" "$ID_BASE.au"   "$WORK/au.pkg"
 stage_and_build "$VST3"      "/Library/Audio/Plug-Ins/VST3"       "$ID_BASE.vst3" "$WORK/vst3.pkg"
+if [ -n "$AAX" ] && [ -d "$AAX" ]; then
+    stage_and_build "$AAX" "/Library/Application Support/Avid/Audio/Plug-Ins" "$ID_BASE.aax" "$WORK/aax.pkg"
+    AAX_LINE='        <line choice="aax"/>'
+    AAX_CHOICE="    <choice id=\"aax\" title=\"AAX (Pro Tools)\" description=\"Installs to /Library/Application Support/Avid/Audio/Plug-Ins\">
+        <pkg-ref id=\"${ID_BASE}.aax\"/>
+    </choice>
+    <pkg-ref id=\"${ID_BASE}.aax\" version=\"${VERSION}\">aax.pkg</pkg-ref>"
+else
+    AAX_LINE=""; AAX_CHOICE=""
+fi
 
 mkdir -p "$WORK/resources"
 cp "$HERE/welcome.html" "$WORK/resources/welcome.html"
@@ -42,6 +53,7 @@ cat > "$WORK/distribution.xml" <<XML
     <choices-outline>
         <line choice="au"/>
         <line choice="vst3"/>
+${AAX_LINE}
     </choices-outline>
     <choice id="au" title="Audio Unit (Logic Pro, GarageBand)" description="Installs to /Library/Audio/Plug-Ins/Components">
         <pkg-ref id="${ID_BASE}.au"/>
@@ -51,6 +63,7 @@ cat > "$WORK/distribution.xml" <<XML
     </choice>
     <pkg-ref id="${ID_BASE}.au"   version="${VERSION}">au.pkg</pkg-ref>
     <pkg-ref id="${ID_BASE}.vst3" version="${VERSION}">vst3.pkg</pkg-ref>
+${AAX_CHOICE}
 </installer-gui-script>
 XML
 

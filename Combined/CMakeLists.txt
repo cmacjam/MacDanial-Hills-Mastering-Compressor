@@ -33,6 +33,22 @@ else()
     set(MDH_FORMATS VST3 Standalone)
 endif()
 
+# ---- Pro Tools (AAX) ----------------------------------------------------------
+# AAX needs Avid's AAX SDK (free, from developer.avid.com - not redistributable).
+# Put the unzipped SDK in  sdk/aax/  at the repo root (or pass -DMDH_AAX_SDK=<path>)
+# and the AAX format is built automatically.
+set(MDH_AAX_SDK "" CACHE PATH "Path to the Avid AAX SDK (enables the Pro Tools / AAX format)")
+if(NOT MDH_AAX_SDK AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../sdk/aax/Interfaces")
+    set(MDH_AAX_SDK "${CMAKE_CURRENT_SOURCE_DIR}/../sdk/aax")
+endif()
+if(MDH_AAX_SDK)
+    message(STATUS "AAX SDK found: ${MDH_AAX_SDK} - building the Pro Tools (AAX) format")
+    juce_set_aax_sdk_path("${MDH_AAX_SDK}")
+    list(APPEND MDH_FORMATS AAX)
+else()
+    message(STATUS "No AAX SDK - skipping the Pro Tools (AAX) format")
+endif()
+
 juce_add_plugin(MacDanialHillsStack
     COMPANY_NAME                "Basemental"
     BUNDLE_ID                   "com.basemental.macdanialhills"
@@ -46,6 +62,7 @@ juce_add_plugin(MacDanialHillsStack
     IS_MIDI_EFFECT              FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     VST3_CATEGORIES             Fx Dynamics
+    AAX_CATEGORY                AAX_ePlugInCategory_Dynamics
     AU_MAIN_TYPE                kAudioUnitType_Effect
     COPY_PLUGIN_AFTER_BUILD     TRUE          # installs into your system plug-in folders
 )

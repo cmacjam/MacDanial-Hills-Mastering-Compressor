@@ -1,5 +1,5 @@
 ; Windows installer for MacDanial Hills Mastering Compressor (VST3).
-; Built in CI with:  ISCC /DAppVersion=1.0.0 /DSourceVST3="<path to .vst3>" /DOutputDir=<dir> installer.iss
+; Built in CI with:  ISCC /DAppVersion=1.0.0 /DSourceVST3="<path to .vst3>" [/DSourceAAX="<path to .aaxplugin>"] /DOutputDir=<dir> installer.iss
 
 #ifndef AppVersion
   #define AppVersion "1.0.0"
@@ -18,6 +18,7 @@ AppVersion={#AppVersion}
 AppPublisher=Basemental
 DefaultDirName={commoncf64}\VST3\MacDanial Hills Mastering Compressor.vst3
 DisableDirPage=yes
+DisableReadyPage=no
 DisableProgramGroupPage=yes
 OutputDir={#OutputDir}
 OutputBaseFilename=MacDanial Hills Mastering Compressor {#AppVersion} Windows Installer
@@ -29,8 +30,21 @@ SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayName=MacDanial Hills Mastering Compressor
 
+[Types]
+Name: "full"; Description: "All formats"
+Name: "custom"; Description: "Choose formats"; Flags: iscustom
+
+[Components]
+Name: "vst3"; Description: "VST3 (Ableton Live, Cubase, Studio One, Reaper, FL Studio ...)"; Types: full custom
+#ifdef SourceAAX
+Name: "aax";  Description: "AAX (Pro Tools)"; Types: full custom
+#endif
+
 [Files]
-Source: "{#SourceVST3}\*"; DestDir: "{commoncf64}\VST3\MacDanial Hills Mastering Compressor.vst3"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourceVST3}\*"; DestDir: "{commoncf64}\VST3\MacDanial Hills Mastering Compressor.vst3"; Components: vst3; Flags: ignoreversion recursesubdirs createallsubdirs
+#ifdef SourceAAX
+Source: "{#SourceAAX}\*"; DestDir: "{commoncf64}\Avid\Audio\Plug-Ins\MacDanial Hills Mastering Compressor.aaxplugin"; Components: aax; Flags: ignoreversion recursesubdirs createallsubdirs
+#endif
 
 [Messages]
-WelcomeLabel2=This installs the MacDanial Hills Mastering Compressor VST3 (Model A, Model B and the bus compressor in one plug-in) by Basemental.%n%nClose your DAW before continuing, then rescan plug-ins after installing.
+WelcomeLabel2=This installs the MacDanial Hills Mastering Compressor by Basemental (Model A, Model B and the bus compressor in one plug-in) as VST3 and, when included, AAX for Pro Tools.%n%nClose your DAW before continuing, then rescan plug-ins after installing.

@@ -19,6 +19,10 @@ If macOS warns the installer is from an unidentified developer, right-click it â
 
 **Windows:** run `MacDanial Hills Mastering Compressor â€¦ Windows Installer.exe`, then rescan plug-ins in your DAW. The VST3 goes to `C:\Program Files\Common Files\VST3`.
 
+**Pro Tools (AAX):** when the installer includes AAX, tick **AAX (Pro Tools)** (Mac: under *Customize*). It installs to `/Library/Application Support/Avid/Audio/Plug-Ins` (Mac) or `C:\Program Files\Common Files\Avid\Audio\Plug-Ins` (Windows). In Pro Tools it appears under **Dynamics**.
+
+**Formats:** AU (Logic Pro, GarageBand), VST3 (Ableton Live, Cubase, Studio One, Reaper, FL Studio, Bitwig and others) and AAX (Pro Tools).
+
 ---
 
 ## 2. The toolbar

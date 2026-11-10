@@ -42,6 +42,16 @@ GitHub Actions (`.github/workflows/build.yml`) builds everything on each push to
 
 To publish a release: **Actions → Build plug-ins → Run workflow**, enter a version such as `v1.0.0`, and run. (Pushing a `v*` tag also works.)
 
+### Pro Tools (AAX)
+
+The plug-in and both installers support Avid's AAX format for Pro Tools. AAX switches on as soon as the AAX SDK is in the repo:
+
+1. Create a free Avid developer account at **developer.avid.com**, accept the AAX licence, and download the **AAX SDK**.
+2. Unzip it into `sdk/aax/` at the root of this repo, so that `sdk/aax/Interfaces/` exists, and push. (Keep this repo **private**: the SDK licence doesn't allow redistributing it.)
+3. The next build adds `MacDanial Hills Mastering Compressor.aaxplugin` to both installers, with an "AAX (Pro Tools)" option.
+
+**Signing for Pro Tools:** retail Pro Tools only loads AAX plug-ins signed with PACE (iLok) *wraptool*. Avid gives developers PACE's Eden tools for free after you sign up. Until it's signed, the AAX plug-in only loads in **Pro Tools Developer** (free from Avid). To sign: `wraptool sign --account <iLok account> --wcguid <your WCGUID> --in <plug-in> --out <plug-in>`.
+
 ### About the installer
 
 The `.pkg` is built by `installer/macos/build_pkg.sh`. It installs to `/Library/Audio/Plug-Ins/Components` and `/Library/Audio/Plug-Ins/VST3`, and the user can untick AU or VST3 under *Customize*.
