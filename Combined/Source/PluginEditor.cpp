@@ -55,13 +55,12 @@ MDHEditor::MDHEditor (MDHAudioProcessor& p)
     setResizable (true, true);
 
     // restore UI state
-    const auto& st = proc.apvts.state;
-    stretch = (bool) st.getProperty ("uiStretch", false);
+    stretch = proc.uiStretch.load();
     stretchBtn.setToggleState (stretch, dontSendNotification);
     updateConstrainer();
 
-    const int w = (int) st.getProperty ("uiWidth", 880);
-    const int h = (int) st.getProperty ("uiHeight", heightForWidth (880));
+    const int w = jlimit (560, 3200, proc.uiWidth.load());
+    const int h = proc.uiHeight.load() > 0 ? proc.uiHeight.load() : heightForWidth (w);
     setSize (w, stretch ? h : heightForWidth (w));
 }
 
@@ -291,10 +290,9 @@ void MDHEditor::dock (Unit& u)
 
 void MDHEditor::storeUiState()
 {
-    auto& st = proc.apvts.state;
-    st.setProperty ("uiWidth", getWidth(), nullptr);
-    st.setProperty ("uiHeight", getHeight(), nullptr);
-    st.setProperty ("uiStretch", stretch, nullptr);
+    proc.uiWidth   = getWidth();
+    proc.uiHeight  = getHeight();
+    proc.uiStretch = stretch;
 }
 
 //==============================================================================

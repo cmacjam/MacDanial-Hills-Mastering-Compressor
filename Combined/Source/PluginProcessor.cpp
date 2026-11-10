@@ -201,7 +201,12 @@ void MDHAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
 void MDHAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     if (auto xml = apvts.copyState().createXml())
+    {
+        xml->setAttribute ("uiWidth",   uiWidth.load());
+        xml->setAttribute ("uiHeight",  uiHeight.load());
+        xml->setAttribute ("uiStretch", uiStretch.load() ? 1 : 0);
         copyXmlToBinary (*xml, destData);
+    }
 }
 
 void MDHAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
@@ -209,19 +214,27 @@ void MDHAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
         if (xml->hasTagName (apvts.state.getType()))
         {
-            const auto restored = juce::ValueTree::fromXml (*xml);
-            apvts.replaceState (restored);
+            uiWidth   = xml->getIntAttribute ("uiWidth", uiWidth.load());
+            uiHeight  = xml->getIntAttribute ("uiHeight", uiHeight.load());
+            uiStretch = xml->getIntAttribute ("uiStretch", uiStretch.load() ? 1 : 0) != 0;
+            xml->removeAttribute ("uiWidth");
+            xml->removeAttribute ("uiHeight");
+            xml->removeAttribute ("uiStretch");
+            // Read the stored values from our private XML copy (never from the live state tree,
+            // which JUCE's own timer may be writing on the message thread).
+            std::vector<std::pair<juce::String, float>> stored;
+            for (auto* e : xml->getChildIterator())
+                if (e->hasAttribute ("id") && e->hasAttribute ("value"))
+                    stored.emplace_back (e->getStringAttribute ("id"), (float) e->getDoubleAttribute ("value"));
+
+            apvts.replaceState (juce::ValueTree::fromXml (*xml));
 
             // Push every stored value back into its parameter. Without this, on/off parameters
             // that a host left at an in-between value (e.g. 0.6) may not be reset, because the
             // state tree already holds the same snapped value.
-            for (auto* param : getParameters())
-                if (auto* rp = dynamic_cast<juce::RangedAudioParameter*> (param))
-                {
-                    const auto child = restored.getChildWithProperty ("id", rp->getParameterID());
-                    if (child.isValid() && child.hasProperty ("value"))
-                        rp->setValueNotifyingHost (rp->convertTo0to1 ((float) child.getProperty ("value")));
-                }
+            for (const auto& [id, value] : stored)
+                if (auto* rp = apvts.getParameter (id))
+                    rp->setValueNotifyingHost (rp->convertTo0to1 (value));
         }
 }
 

@@ -51,6 +51,11 @@ public:
     od2c::BusComp engineC;
     PresetManager presets { apvts };
 
+    // Editor window settings: plain atomics (never written into the ValueTree from the UI,
+    // which a host may be reading on another thread). Saved/loaded with the plug-in state.
+    std::atomic<int>  uiWidth { 880 }, uiHeight { 0 };
+    std::atomic<bool> uiStretch { false };
+
     static constexpr const char* masterBypassId = "MASTER_BYPASS";
 
 private:
