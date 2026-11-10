@@ -35,10 +35,9 @@ GitHub Actions (`.github/workflows/build.yml`) builds everything on each push to
 
 | Artifact | Contents |
 |---|---|
-| **MacDanialHills-Installer-macOS** | `MacDanial Hills Mastering Compressor Installer.pkg`: double-click installer for the combined plug-in (AU + VST3) |
-| MacDanialHills-AB-macOS / -Windows | Combined plug-in as raw bundles |
-| A-MacDanialHills-macOS / -Windows | Model A on its own |
-| B-MacDanialHills-macOS / -Windows | Model B on its own |
+| **MacDanialHills-Complete-Installer-macOS** | **One `.pkg` with everything**: main plug-in as AU + VST3 (+ AAX when the SDK is present), standalone app + manual in `/Applications/MacDanial Hills`, and the single-unit A and B plug-ins. All selected by default; untick parts under *Customize*. |
+| **MacDanialHills-Complete-Installer-Windows** | **One `.exe` with everything**: main plug-in VST3 (+ AAX), standalone app + manual (Start menu), single-unit A and B VST3. |
+| MacDanialHills-AB / A-MacDanialHills / B-MacDanialHills (-macOS / -Windows) | The individual builds the installers are made from |
 
 To publish a release: **Actions → Build plug-ins → Run workflow**, enter a version such as `v1.0.0`, and run. (Pushing a `v*` tag also works.)
 

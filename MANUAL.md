@@ -14,10 +14,12 @@ A fresh instance is set up so nothing double-compresses: Model A's optical stage
 
 ## 1. Installing
 
-**Mac (Logic Pro, Ableton Live and others):** double-click `MacDanial Hills Mastering Compressor … macOS Installer.pkg`. Choose *Customize* to install only the AU or only the VST3. Restart your DAW. In Logic it appears under **Audio Units › Basemental**.
+**One installer has everything.** By default it installs the main plug-in (AU, VST3 and, when included, AAX for Pro Tools), the standalone app with this manual, and the single-unit MacDanial Hills A and B plug-ins.
+
+**Mac (Logic Pro, Ableton Live and others):** double-click `MacDanial Hills Mastering Compressor … macOS Installer.pkg`. To leave something out, click *Customize* and untick it. Restart your DAW. In Logic it appears under **Audio Units › Basemental**. The standalone app and this manual go to **Applications › MacDanial Hills**.
 If macOS warns the installer is from an unidentified developer, right-click it → **Open** → **Open**. (This goes away once the installer is signed with an Apple Developer ID.)
 
-**Windows:** run `MacDanial Hills Mastering Compressor … Windows Installer.exe`, then rescan plug-ins in your DAW. The VST3 goes to `C:\Program Files\Common Files\VST3`.
+**Windows:** run `MacDanial Hills Mastering Compressor … Windows Installer.exe` (choose *Choose what to install* to leave parts out), then rescan plug-ins in your DAW. The VST3 goes to `C:\Program Files\Common Files\VST3`; the standalone app and manual are in the Start menu under **MacDanial Hills**.
 
 **Pro Tools (AAX):** when the installer includes AAX, tick **AAX (Pro Tools)** (Mac: under *Customize*). It installs to `/Library/Application Support/Avid/Audio/Plug-Ins` (Mac) or `C:\Program Files\Common Files\Avid\Audio\Plug-Ins` (Windows). In Pro Tools it appears under **Dynamics**.
 
