@@ -35,10 +35,10 @@ endif()
 
 juce_add_plugin(BasementalOD2
     COMPANY_NAME                "Basemental"
-    BUNDLE_ID                   "com.basemental.od2"
-    PRODUCT_NAME                "Basemental OD-2"
+    BUNDLE_ID                   "com.basemental.macdanialhills.a"
+    PRODUCT_NAME                "MacDanial Hills A"
     PLUGIN_MANUFACTURER_CODE    Bsmt          # 4 chars, at least one uppercase
-    PLUGIN_CODE                 Bod2          # 4 chars, unique per plugin
+    PLUGIN_CODE                 Mdha          # 4 chars, unique per plugin
     FORMATS                     ${OD2_FORMATS}
     IS_SYNTH                    FALSE
     NEEDS_MIDI_INPUT            FALSE

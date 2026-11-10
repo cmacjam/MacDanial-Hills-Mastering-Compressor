@@ -272,7 +272,7 @@ void OD2Editor::drawPanel (Graphics& g)
         g.setFont (PanelLookAndFeel::panelFont (size).withExtraKerningFactor (kerning));
         g.drawText (text, r, Justification::centred, false);
     };
-    plaque ("MACDANIAL HILLS", { 640.0f, 6.0f, 320.0f, 26.0f }, 18.0f, 0.10f);
+    plaque ("MACDANIAL HILLS  -  MODEL B", { 600.0f, 6.0f, 400.0f, 26.0f }, 18.0f, 0.10f);
     plaque ("mastering compressor", { 680.0f, 680.0f, 240.0f, 24.0f }, 16.0f, 0.02f);
 
     // ---- knob dial plates: black discs with light numerals, engraved titles ----

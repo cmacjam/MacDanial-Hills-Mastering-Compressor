@@ -35,10 +35,10 @@ endif()
 
 juce_add_plugin(MacDanialHills
     COMPANY_NAME                "Basemental"
-    BUNDLE_ID                   "com.basemental.macdanialhills"
-    PRODUCT_NAME                "MacDanial Hills Mastering Compressor"
+    BUNDLE_ID                   "com.basemental.macdanialhills.b"
+    PRODUCT_NAME                "MacDanial Hills B"
     PLUGIN_MANUFACTURER_CODE    Bsmt          # 4 chars, at least one uppercase
-    PLUGIN_CODE                 Mdhc          # 4 chars, unique per plugin
+    PLUGIN_CODE                 Mdhb          # 4 chars, unique per plugin
     FORMATS                     ${MDH_FORMATS}
     IS_SYNTH                    FALSE
     NEEDS_MIDI_INPUT            FALSE

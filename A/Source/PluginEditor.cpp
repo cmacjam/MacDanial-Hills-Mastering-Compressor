@@ -147,7 +147,7 @@ void OD2Editor::buildChannel (int ch)
     }
 
     // ---- VU meter + O / D / VU indicator LEDs beneath it
-    c.vu.setBrand ("basemental audio");
+    c.vu.setBrand ("macdanial hills");
     addAndMakeVisible (c.vu);
     place (c.vu, { ch == 0 ? 425.0f : 810.0f, 35.0f, 365.0f, 340.0f });
 
@@ -226,12 +226,12 @@ void OD2Editor::drawPanel (Graphics& g)
     // ---- brand & model ----
     g.setColour (legend);
     g.setFont (PanelLookAndFeel::panelFont (22.0f).withExtraKerningFactor (0.12f));
-    g.drawText ("BASEMENTAL AUDIO", Rectangle<float> (500.0f, 6.0f, 600.0f, 28.0f), Justification::centred, false);
+    g.drawText ("MACDANIAL HILLS", Rectangle<float> (500.0f, 6.0f, 600.0f, 28.0f), Justification::centred, false);
     g.setFont (PanelLookAndFeel::panelFont (22.0f).withExtraKerningFactor (0.08f));
     g.drawText ("MASTERING COMPRESSOR", Rectangle<float> (500.0f, 680.0f, 600.0f, 30.0f), Justification::centred, false);
     g.setFont (PanelLookAndFeel::panelFont (11.0f));
     g.setColour (legend.withAlpha (0.7f));
-    g.drawText ("OD-2", Rectangle<float> (700.0f, 668.0f, 200.0f, 14.0f), Justification::centred, false);
+    g.drawText ("MODEL A", Rectangle<float> (700.0f, 668.0f, 200.0f, 14.0f), Justification::centred, false);
 
     // ---- knob dials: ring, ticks, numerals and curved title ----
     for (const auto& ks : knobSpecs)

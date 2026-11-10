@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.dir }} (${{ matrix.target }}) - ${{ matrix.name }}
+    name: ${{ matrix.artifact }} - ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -22,11 +22,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { dir: A, target: BasementalOD2,  product: "Basemental OD-2",                      au: "aufx Bod2 Bsmt", os: macos-latest,       name: macOS }
-          - { dir: A, target: BasementalOD2,  product: "Basemental OD-2",                      au: "aufx Bod2 Bsmt", os: windows-latest, name: Windows }
-          - { dir: B, target: MacDanialHills, product: "MacDanial Hills Mastering Compressor", au: "aufx Mdhc Bsmt", os: macos-latest,       name: macOS }
-          - { dir: B, target: MacDanialHills, product: "MacDanial Hills Mastering Compressor", au: "aufx Mdhc Bsmt", os: windows-latest, name: Windows }
-
+          - { dir: Combined, target: MacDanialHillsStack, product: "MacDanial Hills Mastering Compressor", au: "aufx Mdhc Bsmt", artifact: MacDanialHills-AB, os: macos-latest,   name: macOS }
+          - { dir: Combined, target: MacDanialHillsStack, product: "MacDanial Hills Mastering Compressor", au: "aufx Mdhc Bsmt", artifact: MacDanialHills-AB, os: windows-latest, name: Windows }
+          - { dir: A,        target: BasementalOD2,       product: "MacDanial Hills A",                    au: "aufx Mdha Bsmt", artifact: A-MacDanialHills,  os: macos-latest,   name: macOS }
+          - { dir: A,        target: BasementalOD2,       product: "MacDanial Hills A",                    au: "aufx Mdha Bsmt", artifact: A-MacDanialHills,  os: windows-latest, name: Windows }
+          - { dir: B,        target: MacDanialHills,      product: "MacDanial Hills B",                    au: "aufx Mdhb Bsmt", artifact: B-MacDanialHills,  os: macos-latest,   name: macOS }
+          - { dir: B,        target: MacDanialHills,      product: "MacDanial Hills B",                    au: "aufx Mdhb Bsmt", artifact: B-MacDanialHills,  os: windows-latest, name: Windows }
     steps:
       - uses: actions/checkout@v4
 
@@ -69,11 +70,28 @@ jobs:
           New-Item -ItemType Directory -Force ../dist | Out-Null
           Compress-Archive -Path "build/${env:TARGET}_artefacts/Release/VST3/${env:PRODUCT}.vst3" -DestinationPath "../dist/${env:PRODUCT}.vst3-Windows.zip"
 
+      - name: Build macOS installer (.pkg)
+        if: runner.os == 'macOS' && matrix.dir == 'Combined'
+        run: |
+          set -e
+          ART="build/${TARGET}_artefacts/Release"
+          VERSION="$(sed -n 's/^project([^ ]* VERSION \([0-9.]*\)).*/\1/p' CMakeLists.txt)"
+          mkdir -p ../installer-out
+          ../installer/macos/build_pkg.sh "$ART/AU/${PRODUCT}.component" "$ART/VST3/${PRODUCT}.vst3" \
+              "$VERSION" "../installer-out/${PRODUCT} Installer.pkg"
+
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.dir }}-${{ matrix.target }}-${{ matrix.name }}
+          name: ${{ matrix.artifact }}-${{ matrix.name }}
           path: dist/*
+
+      - name: Upload installer
+        if: runner.os == 'macOS' && matrix.dir == 'Combined'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MacDanialHills-Installer-macOS
+          path: installer-out/*.pkg
 
   release:
     name: Publish release (on v* tags)
@@ -89,4 +107,4 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: dist/**/*
