@@ -40,7 +40,7 @@ GitHub Actions (`.github/workflows/build.yml`) builds everything on each push to
 | A-MacDanialHills-macOS / -Windows | Model A on its own |
 | B-MacDanialHills-macOS / -Windows | Model B on its own |
 
-Push a tag (`git tag v1.0.0 && git push --tags`) to publish everything as a GitHub **Release**.
+To publish a release: **Actions → Build plug-ins → Run workflow**, enter a version such as `v1.0.0`, and run. (Pushing a `v*` tag also works.)
 
 ### About the installer
 
