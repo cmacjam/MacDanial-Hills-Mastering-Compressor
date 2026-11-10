@@ -1,0 +1,92 @@
+name: Build plug-ins
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.dir }} (${{ matrix.target }}) - ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    env:
+      TARGET: ${{ matrix.target }}
+      PRODUCT: ${{ matrix.product }}
+      AU_CODE: ${{ matrix.au }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { dir: A, target: BasementalOD2,  product: "Basemental OD-2",                      au: "aufx Bod2 Bsmt", os: macos-14,       name: macOS }
+          - { dir: A, target: BasementalOD2,  product: "Basemental OD-2",                      au: "aufx Bod2 Bsmt", os: windows-latest, name: Windows }
+          - { dir: B, target: MacDanialHills, product: "MacDanial Hills Mastering Compressor", au: "aufx Mdhc Bsmt", os: macos-14,       name: macOS }
+          - { dir: B, target: MacDanialHills, product: "MacDanial Hills Mastering Compressor", au: "aufx Mdhc Bsmt", os: windows-latest, name: Windows }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache JUCE download
+        uses: actions/cache@v4
+        with:
+          path: ${{ matrix.dir }}/build/_deps/juce-src
+          key: juce-8.0.4-${{ runner.os }}-${{ matrix.dir }}
+
+      - name: Configure (macOS, universal binary)
+        if: runner.os == 'macOS'
+        run: cmake -B build -G Xcode
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Sign locally, validate AU, package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          set -e
+          ART="build/${TARGET}_artefacts/Release"
+          mkdir -p ../dist
+          for b in "$ART/AU/${PRODUCT}.component" "$ART/VST3/${PRODUCT}.vst3"; do
+            codesign --force --deep -s - "$b"
+            ditto -c -k --keepParent "$b" "../dist/$(basename "$b")-macOS.zip"
+          done
+          rm -rf ~/Library/Audio/Plug-Ins/Components/"${PRODUCT}.component"
+          cp -R "$ART/AU/${PRODUCT}.component" ~/Library/Audio/Plug-Ins/Components/
+          killall -9 AudioComponentRegistrar || true
+          auval -v $AU_CODE
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ../dist | Out-Null
+          Compress-Archive -Path "build/${env:TARGET}_artefacts/Release/VST3/${env:PRODUCT}.vst3" -DestinationPath "../dist/${env:PRODUCT}.vst3-Windows.zip"
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.dir }}-${{ matrix.target }}-${{ matrix.name }}
+          path: dist/*
+
+  release:
+    name: Publish release (on v* tags)
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
