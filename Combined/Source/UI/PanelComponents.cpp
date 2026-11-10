@@ -53,19 +53,25 @@ float LedSelector::knobAngleFor (int i) const
 void LedSelector::paint (Graphics& g)
 {
     const float w = (float) getWidth(), h = (float) getHeight();
-    const float ledR = (style == Style::verticalToggle ? w * 0.075f : h * 0.065f);
-
-    for (int i = 0; i < numItems; ++i)
-        PanelLookAndFeel::drawLed (g, ledCentre (i), ledR, ledColour, i == index);
+    const float ledR = h * 0.065f;
 
     if (style == Style::verticalToggle)
     {
-        const Point<float> nut (mirrored ? w * 0.30f : w * 0.70f, h * 0.5f);
-        const float nutR = w * 0.17f;
-        Point<float> dir (0.0f, 0.0f);
-        if (index == 0) dir = { 0.0f, -1.0f };
-        if (index == 2) dir = { 0.0f,  1.0f };
-        PanelLookAndFeel::drawToggleSwitch (g, nut, nutR, dir, h * 0.30f);
+        // Three stacked lit buttons: Nickel / Iron / Steel
+        const char* letters[] = { "N", "I", "S" };
+        const float bh = h / (float) numItems;
+        for (int i = 0; i < numItems; ++i)
+            PanelLookAndFeel::drawPushButton (g, Rectangle<float> (w * 0.12f, bh * (float) i, w * 0.76f, bh),
+                                              letters[jmin (i, 2)], i == index, ledColour, false, false);
+    }
+    else
+    {
+        for (int i = 0; i < numItems; ++i)
+            PanelLookAndFeel::drawLed (g, ledCentre (i), ledR, ledColour, i == index);
+    }
+
+    if (style == Style::verticalToggle)
+    {
     }
     else
     {

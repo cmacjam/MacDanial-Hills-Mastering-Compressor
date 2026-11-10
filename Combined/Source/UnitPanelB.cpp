@@ -159,6 +159,11 @@ void UnitPanelB::addToggle (ToggleButton& b, const String& id, float cx, float c
                            bool onIsRight)
 {
     b.getProperties().set ("onIsRight", onIsRight);
+    const bool inOut = left == "IN" && right == "OUT";
+    b.getProperties().set ("onText",  inOut ? "IN" : "STEREO");
+    b.getProperties().set ("offText", inOut ? "OUT" : "DUAL");
+    b.getProperties().set ("invertLit", inOut && onIsRight);   // hardwire: lit while the unit is IN
+    b.getProperties().set ("led", (int) colours::ledGreen.getARGB());
     addAndMakeVisible (b);
     buttonAtts.push_back (std::make_unique<ButtonAtt> (apvts, id, b));
     toggleSpecs.push_back ({ cx, cy, top, bottom, left, right });
@@ -188,8 +193,8 @@ void UnitPanelB::buildChannel (int ch)
     // ---- stage LEDs (lit = section IN)
     c.optLed.setColour (colours::ledGreen);
     c.dscLed.setColour (colours::ledGreen);
-    addAndMakeVisible (c.optLed);
-    addAndMakeVisible (c.dscLed);
+    addChildComponent (c.optLed);   // the lit push-buttons now show IN/OUT
+    addChildComponent (c.dscLed);
     c.optLed.setOnClick ([this, ch] { toggleParam (prefix + ids::ch (ch, ids::optIn)); });
     c.dscLed.setOnClick ([this, ch] { toggleParam (prefix + ids::ch (ch, ids::dscIn)); });
     place (c.optLed, { mx (240.0f) - 13.0f, 222.0f - 13.0f, 26.0f, 26.0f });
@@ -401,8 +406,6 @@ void UnitPanelB::drawPanel (Graphics& g)
         };
         put (ts.top,    ts.cx,         ts.cy - 30.0f);
         put (ts.bottom, ts.cx,         ts.cy + 30.0f);
-        put (ts.left,   ts.cx - 45.0f, ts.cy);
-        put (ts.right,  ts.cx + 47.0f, ts.cy);
     }
 
     for (const auto& t : textSpecs)

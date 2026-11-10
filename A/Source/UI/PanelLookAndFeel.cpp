@@ -19,50 +19,54 @@ Font PanelLookAndFeel::panelFont (float height, bool bold)
 //==============================================================================
 void PanelLookAndFeel::drawBakeliteKnob (Graphics& g, Point<float> c, float R, float angle, bool enabled)
 {
-    // drop shadow
+    // MacDanial Hills knob: matte knurled skirt, brushed-metal cap, cream pointer.
     g.setColour (Colours::black.withAlpha (0.55f));
-    g.fillEllipse (c.x - R + R * 0.07f, c.y - R + R * 0.12f, R * 2.0f, R * 2.0f);
+    g.fillEllipse (c.x - R + R * 0.06f, c.y - R + R * 0.12f, R * 2.0f, R * 2.0f);
 
-    // skirt
+    g.setGradientFill (ColourGradient (Colour (0xff36363a), c.x - R * 0.5f, c.y - R * 0.6f,
+                                       Colour (0xff070708), c.x + R * 0.6f, c.y + R * 0.8f, true));
+    g.fillEllipse (c.x - R, c.y - R, R * 2.0f, R * 2.0f);
+
+    // knurling
+    const int ridges = 48;
+    for (int k = 0; k < ridges; ++k)
     {
-        ColourGradient grad (Colour (0xff3c3c3e), c.x - R * 0.4f, c.y - R * 0.5f,
-                             Colour (0xff030303), c.x + R * 0.6f, c.y + R * 0.8f, true);
-        g.setGradientFill (grad);
-        g.fillEllipse (c.x - R, c.y - R, R * 2.0f, R * 2.0f);
-        g.setColour (Colours::black);
-        g.drawEllipse (c.x - R, c.y - R, R * 2.0f, R * 2.0f, jmax (1.0f, R * 0.025f));
+        const float a = (float) k * MathConstants<float>::twoPi / (float) ridges;
+        g.setColour ((k % 2 == 0 ? Colours::white : Colours::black).withAlpha (k % 2 == 0 ? 0.07f : 0.35f));
+        g.drawLine (Line<float> (c.getPointOnCircumference (R * 0.80f, a), c.getPointOnCircumference (R * 0.985f, a)),
+                    jmax (0.6f, R * 0.025f));
     }
+    g.setColour (Colours::black);
+    g.drawEllipse (c.x - R, c.y - R, R * 2.0f, R * 2.0f, jmax (1.0f, R * 0.03f));
 
-    // raised cap
-    const float r2 = R * 0.72f;
+    // brushed-metal cap
+    const float rc = R * 0.64f;
+    g.setColour (Colours::black.withAlpha (0.6f));
+    g.fillEllipse (c.x - rc * 1.06f, c.y - rc * 1.02f, rc * 2.12f, rc * 2.16f);
+    g.setGradientFill (ColourGradient (Colour (0xffe4e3df), c.x - rc * 0.6f, c.y - rc * 0.7f,
+                                       Colour (0xff7d7c78), c.x + rc * 0.7f, c.y + rc * 0.8f, false));
+    g.fillEllipse (c.x - rc, c.y - rc, rc * 2.0f, rc * 2.0f);
+    for (int k = 1; k < 9; ++k)   // concentric brushing
     {
-        ColourGradient grad (Colour (0xff4d4d50), c.x - r2 * 0.5f, c.y - r2 * 0.6f,
-                             Colour (0xff070707), c.x + r2 * 0.7f, c.y + r2 * 0.9f, true);
-        g.setGradientFill (grad);
-        g.fillEllipse (c.x - r2, c.y - r2, r2 * 2.0f, r2 * 2.0f);
-        g.setColour (Colours::black.withAlpha (0.8f));
-        g.drawEllipse (c.x - r2, c.y - r2, r2 * 2.0f, r2 * 2.0f, jmax (0.8f, R * 0.02f));
+        const float rr = rc * (float) k / 9.0f;
+        g.setColour ((k % 2 ? Colours::white : Colours::black).withAlpha (0.05f));
+        g.drawEllipse (c.x - rr, c.y - rr, rr * 2.0f, rr * 2.0f, jmax (0.5f, rc * 0.04f));
     }
+    g.setGradientFill (ColourGradient (Colours::white.withAlpha (0.45f), c.x - rc * 0.45f, c.y - rc * 0.55f,
+                                       Colours::white.withAlpha (0.0f), c.x, c.y, true));
+    g.fillEllipse (c.x - rc, c.y - rc, rc * 2.0f, rc * 2.0f);
+    g.setColour (Colours::black.withAlpha (0.55f));
+    g.drawEllipse (c.x - rc, c.y - rc, rc * 2.0f, rc * 2.0f, jmax (0.8f, R * 0.02f));
 
-    // glossy specular highlight
-    {
-        ColourGradient spec (Colours::white.withAlpha (0.28f), c.x - R * 0.35f, c.y - R * 0.45f,
-                             Colours::white.withAlpha (0.0f),  c.x - R * 0.05f, c.y - R * 0.05f, true);
-        g.setGradientFill (spec);
-        g.fillEllipse (c.x - R * 0.75f, c.y - R * 0.8f, R * 0.85f, R * 0.6f);
-    }
-
-    // white pointer line
-    const auto p1 = c.getPointOnCircumference (R * 0.18f, angle);
-    const auto p2 = c.getPointOnCircumference (R * 0.96f, angle);
-    Path ptr;
-    ptr.startNewSubPath (p1);
-    ptr.lineTo (p2);
+    // pointer: engraved dot on the cap + cream line on the skirt
+    const auto dot = c.getPointOnCircumference (rc * 0.68f, angle);
+    g.setColour (Colour (0xff1c1c1c));
+    g.fillEllipse (Rectangle<float> (rc * 0.2f, rc * 0.2f).withCentre (dot));
+    const auto p1 = c.getPointOnCircumference (rc * 1.08f, angle), p2 = c.getPointOnCircumference (R * 0.97f, angle);
     g.setColour (Colours::black.withAlpha (0.5f));
-    g.strokePath (ptr, PathStrokeType (jmax (1.5f, R * 0.09f), PathStrokeType::curved, PathStrokeType::rounded),
-                  AffineTransform::translation (R * 0.02f, R * 0.04f));
-    g.setColour (Colour (0xfff3f0e6));
-    g.strokePath (ptr, PathStrokeType (jmax (1.2f, R * 0.06f), PathStrokeType::curved, PathStrokeType::rounded));
+    g.drawLine (Line<float> (p1, p2).withShortenedStart (0.0f), jmax (2.0f, R * 0.10f));
+    g.setColour (Colour (0xfff1ead8));
+    g.drawLine (Line<float> (p1, p2), jmax (1.4f, R * 0.065f));
 
     if (! enabled)
     {
@@ -112,6 +116,50 @@ void PanelLookAndFeel::drawCreamKnob (Graphics& g, Point<float> c, float R, floa
     g.setColour (Colour (0xff141414));
     g.drawLine (Line<float> (c.getPointOnCircumference (R * 0.25f, angle), c.getPointOnCircumference (R * 0.97f, angle)),
                 jmax (1.5f, R * 0.08f));
+}
+
+void PanelLookAndFeel::drawPushButton (Graphics& g, Rectangle<float> r, const String& text, bool lit,
+                                       Colour led, bool down, bool hover)
+{
+    r = r.reduced (r.getWidth() * 0.06f, r.getHeight() * 0.12f);
+    const float corner = r.getHeight() * 0.32f;
+
+    // recessed bezel
+    g.setColour (Colours::black.withAlpha (0.65f));
+    g.fillRoundedRectangle (r.expanded (2.5f).translated (0.0f, 1.0f), corner + 2.0f);
+    g.setGradientFill (ColourGradient (Colour (0xff4a4a4e), r.getX(), r.getY() - 2.0f,
+                                       Colour (0xff111113), r.getX(), r.getBottom() + 2.0f, false));
+    g.fillRoundedRectangle (r.expanded (1.5f), corner + 1.5f);
+
+    // glow behind the cap when lit
+    if (lit)
+    {
+        g.setGradientFill (ColourGradient (led.withAlpha (0.45f), r.getCentreX(), r.getCentreY(),
+                                           led.withAlpha (0.0f), r.getRight() + r.getHeight(), r.getCentreY(), true));
+        g.fillRoundedRectangle (r.expanded (r.getHeight() * 0.6f), corner * 2.0f);
+    }
+
+    // cap
+    auto cap = r.translated (0.0f, down ? 1.0f : 0.0f);
+    g.setGradientFill (ColourGradient (lit ? Colour (0xff2c2f2d) : Colour (0xff2a2a2d), cap.getX(), cap.getY(),
+                                       Colour (0xff0d0d0e), cap.getX(), cap.getBottom(), false));
+    g.fillRoundedRectangle (cap, corner);
+    g.setColour (Colours::white.withAlpha (hover ? 0.16f : 0.09f));
+    g.drawRoundedRectangle (cap.reduced (0.5f), corner, 1.0f);
+
+    // light strip along the top edge of the cap
+    auto strip = cap.reduced (cap.getWidth() * 0.18f, 0.0f).removeFromTop (cap.getHeight() * 0.2f).translated (0.0f, cap.getHeight() * 0.12f);
+    g.setColour (lit ? led : Colour (0xff1a1d1b));
+    g.fillRoundedRectangle (strip, strip.getHeight() * 0.5f);
+    if (lit)
+    {
+        g.setColour (Colours::white.withAlpha (0.55f));
+        g.fillRoundedRectangle (strip.reduced (strip.getWidth() * 0.3f, strip.getHeight() * 0.3f), strip.getHeight() * 0.3f);
+    }
+
+    g.setColour (lit ? Colour (0xfff2efe6) : Colour (0xff8a8a8d));
+    g.setFont (panelFont (cap.getHeight() * 0.36f, true).withExtraKerningFactor (0.06f));
+    g.drawText (text, cap.withTrimmedTop (cap.getHeight() * 0.3f), Justification::centred, false);
 }
 
 void PanelLookAndFeel::drawLampButton (Graphics& g, Rectangle<float> r, const String& text, bool lit, bool down)
@@ -216,14 +264,14 @@ void PanelLookAndFeel::drawToggleButton (Graphics& g, ToggleButton& b, bool, boo
         return;
     }
 
-    const auto bounds = b.getLocalBounds().toFloat();
-    const auto c = bounds.getCentre();
-    const float nutR = bounds.getHeight() * 0.30f;
-
-    // Default: bat points LEFT when the parameter is ON (IN).  "onIsRight" flips it.
-    const bool onIsRight = (bool) b.getProperties().getWithDefault ("onIsRight", false);
-    const bool pointRight = b.getToggleState() == onIsRight;
-    drawToggleSwitch (g, c, nutR, { pointRight ? 1.0f : -1.0f, 0.0f }, bounds.getWidth() * 0.40f);
+    // Lit push-button: glows in the unit's LED colour when the function is engaged.
+    const auto& props = b.getProperties();
+    const bool invert = (bool) props.getWithDefault ("invertLit", false);
+    const bool lit    = b.getToggleState() != invert;
+    const String text = lit ? props.getWithDefault ("onText", "IN").toString()
+                            : props.getWithDefault ("offText", "OUT").toString();
+    const Colour led ((uint32) (int) props.getWithDefault ("led", (int) colours::ledGreen.getARGB()));
+    drawPushButton (g, b.getLocalBounds().toFloat(), text, lit, led, isDown, b.isMouseOver());
 }
 
 //==============================================================================
