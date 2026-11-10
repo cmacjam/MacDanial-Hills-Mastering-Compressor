@@ -17,7 +17,8 @@ stage_and_build () {   # $1 = bundle, $2 = install dir, $3 = package id, $4 = ou
     pkgbuild --analyze --root "$root" "$WORK/comp.plist"
     local i=0
     while /usr/libexec/PlistBuddy -c "Print :$i" "$WORK/comp.plist" >/dev/null 2>&1; do
-        /usr/libexec/PlistBuddy -c "Set :$i:BundleIsRelocatable false" "$WORK/comp.plist"
+        /usr/libexec/PlistBuddy -c "Delete :$i:BundleIsRelocatable" "$WORK/comp.plist" >/dev/null 2>&1 || true
+        /usr/libexec/PlistBuddy -c "Add :$i:BundleIsRelocatable bool false" "$WORK/comp.plist"
         i=$((i + 1))
     done
     pkgbuild --root "$root" --component-plist "$WORK/comp.plist" \
