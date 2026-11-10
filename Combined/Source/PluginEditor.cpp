@@ -306,7 +306,12 @@ void MDHEditor::paint (Graphics& g)
     g.fillRect (bar);
     g.setColour (Colour (0xffe8e4d8));
     g.setFont (od2::PanelLookAndFeel::panelFont (13.0f, true).withExtraKerningFactor (0.08f));
-    g.drawText ("MACDANIAL HILLS", bar.withTrimmedLeft (10.0f).withWidth (150.0f), Justification::centredLeft, false);
+    g.drawText ("MACDANIAL HILLS", bar.withTrimmedLeft (10.0f).withWidth (150.0f).withTrimmedBottom (13.0f).withTrimmedTop (3.0f),
+                Justification::centredLeft, false);
+    g.setColour (Colour (0xff8f8a80));
+    g.setFont (od2::PanelLookAndFeel::panelFont (10.0f, false));
+    g.drawText ("v" JucePlugin_VersionString, bar.withTrimmedLeft (10.0f).withWidth (150.0f).withTrimmedTop (22.0f),
+                Justification::centredLeft, false);
     g.setColour (Colours::black);
     g.drawLine (0.0f, bar.getBottom() - 0.5f, (float) getWidth(), bar.getBottom() - 0.5f, 1.0f);
 }
