@@ -118,7 +118,9 @@ jobs:
             $cdb = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\Debuggers\x64\cdb.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($cdb) {
               $pdbDirs = (Get-ChildItem build -Recurse -Filter *.pdb | ForEach-Object { $_.DirectoryName } | Sort-Object -Unique) -join ';'
-              & $cdb.FullName -g -G -lines -y "$pdbDirs" -c ".symopt+0x40;g;.echo ===CRASH===;.ecxr;kp 40;.echo ===ALLTHREADS===;~*kp 30;q" $pv --strictness-level 7 --validate-in-process --timeout-ms 600000 --validate $vst3
+              $gflags = Join-Path $cdb.DirectoryName "gflags.exe"
+              if (Test-Path $gflags) { & $gflags /p /enable pluginval.exe /full | Out-Host }   # catch bad memory access at the faulting line
+              & $cdb.FullName -hd -g -G -lines -y "$pdbDirs" -c ".symopt+0x40;g;.echo ===CRASH===;.ecxr;kp 40;.echo ===ALLTHREADS===;~*kp 30;q" $pv --strictness-level 7 --validate-in-process --timeout-ms 600000 --validate $vst3
             } else { Write-Host "cdb not found on this runner" }
             exit 1
           }
