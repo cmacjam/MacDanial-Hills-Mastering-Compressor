@@ -50,7 +50,8 @@ jobs:
 
       - name: Configure (Windows)
         if: runner.os == 'Windows'
-        run: cmake -B build -A x64
+        # Release build with debug symbols (PDB) so crash reports show source locations.
+        run: cmake -B build -A x64 "-DCMAKE_CXX_FLAGS_RELEASE=/O2 /Ob2 /DNDEBUG /Zi" "-DCMAKE_MODULE_LINKER_FLAGS_RELEASE=/DEBUG /OPT:REF /OPT:ICF" "-DCMAKE_SHARED_LINKER_FLAGS_RELEASE=/DEBUG /OPT:REF /OPT:ICF"
 
       - name: Build
         run: cmake --build build --config Release --parallel 4
@@ -109,8 +110,18 @@ jobs:
         run: |
           Invoke-WebRequest https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile "$env:RUNNER_TEMP\pluginval.zip"
           Expand-Archive "$env:RUNNER_TEMP\pluginval.zip" -DestinationPath "$env:RUNNER_TEMP\pv" -Force
-          & "$env:RUNNER_TEMP\pv\pluginval.exe" --strictness-level 7 --validate-in-process --timeout-ms 600000 --validate "build/${env:TARGET}_artefacts/Release/VST3/${env:PRODUCT}.vst3"
-          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $vst3 = "build/${env:TARGET}_artefacts/Release/VST3/${env:PRODUCT}.vst3"
+          $pv   = "$env:RUNNER_TEMP\pv\pluginval.exe"
+          & $pv --strictness-level 7 --validate-in-process --timeout-ms 600000 --validate $vst3
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "pluginval failed - re-running under cdb to capture the crash stack"
+            $cdb = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\Debuggers\x64\cdb.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($cdb) {
+              $pdbDirs = (Get-ChildItem build -Recurse -Filter *.pdb | ForEach-Object { $_.DirectoryName } | Sort-Object -Unique) -join ';'
+              & $cdb.FullName -g -G -lines -y "$pdbDirs" -c ".symopt+0x40;g;.echo ===CRASH===;.ecxr;kp 40;.echo ===ALLTHREADS===;~*kp 30;q" $pv --strictness-level 7 --validate-in-process --timeout-ms 600000 --validate $vst3
+            } else { Write-Host "cdb not found on this runner" }
+            exit 1
+          }
 
       - name: Build macOS installer (.pkg)
         if: runner.os == 'macOS' && matrix.dir == 'Combined'
