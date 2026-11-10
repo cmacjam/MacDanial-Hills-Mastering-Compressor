@@ -1,5 +1,7 @@
 # MacDanial Hills Mastering Compressor
 
+**User manual: [MANUAL.md](MANUAL.md)**
+
 JUCE 8 mastering-compressor plug-ins by Basemental (AU / VST3 / Standalone).
 
 | Folder | Plug-in | What it is |

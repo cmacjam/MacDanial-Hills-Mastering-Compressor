@@ -165,10 +165,16 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          files: dist/**/*
+          body: |
+            MacDanial Hills Mastering Compressor ${{ github.ref_name }} by Basemental.
+            Install with the macOS .pkg or the Windows .exe. See MANUAL.md for the full guide.
+          files: |
+            dist/**/*
+            MANUAL.md

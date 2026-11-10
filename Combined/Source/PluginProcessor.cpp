@@ -208,7 +208,21 @@ void MDHAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
         if (xml->hasTagName (apvts.state.getType()))
-            apvts.replaceState (juce::ValueTree::fromXml (*xml));
+        {
+            const auto restored = juce::ValueTree::fromXml (*xml);
+            apvts.replaceState (restored);
+
+            // Push every stored value back into its parameter. Without this, on/off parameters
+            // that a host left at an in-between value (e.g. 0.6) may not be reset, because the
+            // state tree already holds the same snapped value.
+            for (auto* param : getParameters())
+                if (auto* rp = dynamic_cast<juce::RangedAudioParameter*> (param))
+                {
+                    const auto child = restored.getChildWithProperty ("id", rp->getParameterID());
+                    if (child.isValid() && child.hasProperty ("value"))
+                        rp->setValueNotifyingHost (rp->convertTo0to1 ((float) child.getProperty ("value")));
+                }
+        }
 }
 
 juce::AudioProcessorEditor* MDHAudioProcessor::createEditor()
